@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INVOICE — TourBuzz TMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <div class="maker-action-bar">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Invoice Builder</div>
+        <div class="maker-action-group">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-save-sync">💾 Save &amp; Sync</button>
+          <button type="button" class="btn btn-navy btn-sm" id="btn-print-a4">🖨 Print A4</button>
+          <button type="button" class="btn btn-green btn-sm" id="btn-download-pdf">📄 Download PDF</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-reset-form">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="workspace-split">
+        <div class="form-panel">
+          <div class="form-section">
+            <div class="form-section-title">Invoice Metadata</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Invoice Number</label>
+                <input type="text" id="inv-no" class="form-control mono">
+              </div>
+              <div class="form-group">
+                <label>Currency</label>
+                <select id="inv-currency" class="form-control"></select>
+              </div>
+              <div class="form-group">
+                <label>Invoice Date</label>
+                <input type="date" id="inv-date" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Due Date</label>
+                <input type="date" id="inv-due-date" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Trip / File Reference</label>
+                <input type="text" id="inv-trip-ref" class="form-control" placeholder="e.g. BKK-NOV-2026">
+              </div>
+              <div class="form-group">
+                <label>Prepared By</label>
+                <input type="text" id="inv-prepared" class="form-control" value="TourBuzz Accounts Desk">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Client Information</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Client Full Name *</label>
+                <input type="text" id="inv-client-name" class="form-control" placeholder="e.g. Mr. Tanvir Ahmed">
+              </div>
+              <div class="form-group">
+                <label>Company / Organization</label>
+                <input type="text" id="inv-client-company" class="form-control" placeholder="Optional">
+              </div>
+              <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="inv-client-phone" class="form-control" placeholder="+880 1XXX-XXXXXX">
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="inv-client-email" class="form-control" placeholder="client@example.com">
+              </div>
+              <div class="form-group full">
+                <label>Address</label>
+                <input type="text" id="inv-client-address" class="form-control" placeholder="Dhaka, Bangladesh">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">
+              <span>Line Items</span>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-item">+ Add Item</button>
+            </div>
+            <div id="inv-items-list"></div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Taxes, Fees &amp; Settlement</div>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label>Tax / VAT (%)</label>
+                <input type="number" step="0.01" min="0" id="inv-tax" class="form-control" value="0">
+              </div>
+              <div class="form-group">
+                <label>Service Fee</label>
+                <input type="number" step="0.01" min="0" id="inv-service" class="form-control" value="0">
+              </div>
+              <div class="form-group">
+                <label>Discount</label>
+                <input type="number" step="0.01" min="0" id="inv-discount" class="form-control" value="0">
+              </div>
+              <div class="form-group">
+                <label>Paid Amount</label>
+                <input type="number" step="0.01" min="0" id="inv-paid" class="form-control" value="0">
+              </div>
+              <div class="form-group">
+                <label>Status Override</label>
+                <select id="inv-status" class="form-control">
+                  <option value="">Auto (Paid/Partial/Unpaid)</option>
+                  <option value="PAID">PAID</option>
+                  <option value="PARTIAL">PARTIAL</option>
+                  <option value="UNPAID">UNPAID</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group full" style="margin-top:10px;">
+              <label>Invoice Notes / Payment Terms (Shown below Bank Details)</label>
+              <textarea id="inv-notes" class="form-control" placeholder="Thank you for choosing TourBuzz Travel Services Ltd."></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">
+              <span>Bank &amp; Payment Options (Editable)</span>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-inv-bank">+ Add Bank / Option</button>
+            </div>
+            <div id="inv-banks-list"></div>
+          </div>
+        </div>
+
+        <div class="preview-panel">
+          <div class="preview-scale-wrap" id="a4-preview"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="brand-assets.js"></script>
+  <script src="app.js"></script>
+  <script src="doc-renderers.js"></script>
+  <script src="smart-parser.js"></script>
+  <script src="doc-actions.js"></script>
+  <script>
+    TourBuzzApp.initShell('invoice.html', 'INVOICE');
+
+    const curSelect = document.getElementById('inv-currency');
+    curSelect.innerHTML = CONFIG.CURRENCIES.map(c => `<option value="${c.code}">${c.code} — ${c.name}</option>`).join('');
+
+    const itemsWrap = document.getElementById('inv-items-list');
+    const invBanksWrap = document.getElementById('inv-banks-list');
+    let makerCtrl = null;
+
+    function addInvBankRow(b = {}) {
+      const card = document.createElement('div');
+      card.className = 'repeater-card';
+      card.innerHTML = `
+        <div class="repeater-header">
+          <span>Bank / Payment Option</span>
+          <button type="button" class="btn btn-danger btn-sm btn-remove-bank">Remove</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Bank / Payment Method</label>
+            <input type="text" class="form-control ib-name" value="${TourBuzzApp.escapeHtml(b.bankName || '')}" placeholder="e.g. BRAC Bank PLC / bKash">
+          </div>
+          <div class="form-group">
+            <label>Account Name</label>
+            <input type="text" class="form-control ib-accname" value="${TourBuzzApp.escapeHtml(b.accountName || '')}">
+          </div>
+          <div class="form-group">
+            <label>Account / Mobile Number</label>
+            <input type="text" class="form-control mono ib-accno" value="${TourBuzzApp.escapeHtml(b.accountNumber || '')}">
+          </div>
+          <div class="form-group">
+            <label>Branch / Type</label>
+            <input type="text" class="form-control ib-branch" value="${TourBuzzApp.escapeHtml(b.branch || '')}">
+          </div>
+          <div class="form-group full">
+            <label>Routing / Reference Note</label>
+            <input type="text" class="form-control mono ib-routing" value="${TourBuzzApp.escapeHtml(b.routingNo || '')}">
+          </div>
+        </div>
+      `;
+      card.querySelector('.btn-remove-bank').addEventListener('click', () => {
+        card.remove();
+        if (makerCtrl) makerCtrl.renderNow();
+      });
+      invBanksWrap.appendChild(card);
+    }
+
+    document.getElementById('btn-add-inv-bank').addEventListener('click', () => {
+      addInvBankRow({ accountName: CONFIG.COMPANY.NAME });
+      if (makerCtrl) makerCtrl.renderNow();
+    });
+
+    function addItemRow(data = {}) {
+      const card = document.createElement('div');
+      card.className = 'repeater-card';
+      card.innerHTML = `
+        <div class="repeater-header">
+          <span>Service Line Item</span>
+          <button type="button" class="btn btn-danger btn-sm btn-remove-item">Remove</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Description</label>
+            <input type="text" class="form-control item-desc" placeholder="e.g. 4N/5D Bangkok & Pattaya Land Package" value="${TourBuzzApp.escapeHtml(data.description || '')}">
+          </div>
+          <div class="form-group full">
+            <label>Sub-details (Optional)</label>
+            <input type="text" class="form-control item-details" placeholder="Hotel category, transfers, sightseeing" value="${TourBuzzApp.escapeHtml(data.details || '')}">
+          </div>
+          <div class="form-group">
+            <label>Quantity</label>
+            <input type="number" step="1" min="0" class="form-control item-qty" value="${data.qty ?? 1}">
+          </div>
+          <div class="form-group">
+            <label>Unit Price</label>
+            <input type="number" step="0.01" min="0" class="form-control item-price" value="${data.unitPrice ?? 0}">
+          </div>
+        </div>
+      `;
+      card.querySelector('.btn-remove-item').addEventListener('click', () => {
+        card.remove();
+        if (makerCtrl) makerCtrl.renderNow();
+      });
+      itemsWrap.appendChild(card);
+    }
+
+    document.getElementById('btn-add-item').addEventListener('click', () => {
+      addItemRow({ qty: 1, unitPrice: 0 });
+      if (makerCtrl) makerCtrl.renderNow();
+    });
+
+    function collectData() {
+      const items = Array.from(itemsWrap.querySelectorAll('.repeater-card')).map(c => ({
+        description: c.querySelector('.item-desc').value,
+        details: c.querySelector('.item-details').value,
+        qty: TourBuzzApp.toNumber(c.querySelector('.item-qty').value),
+        unitPrice: TourBuzzApp.toNumber(c.querySelector('.item-price').value)
+      }));
+      const subtotal = items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
+      const taxPercent = TourBuzzApp.toNumber(document.getElementById('inv-tax').value);
+      const serviceFee = TourBuzzApp.toNumber(document.getElementById('inv-service').value);
+      const discount = TourBuzzApp.toNumber(document.getElementById('inv-discount').value);
+      const grandTotal = Math.max(0, subtotal + (subtotal * taxPercent / 100) + serviceFee - discount);
+      const paidAmount = TourBuzzApp.toNumber(document.getElementById('inv-paid').value);
+      const dueAmount = Math.max(0, grandTotal - paidAmount);
+      const manualStatus = document.getElementById('inv-status').value;
+      const status = manualStatus || (dueAmount <= 0.005 && grandTotal > 0 ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID'));
+
+      return {
+        type: 'invoice',
+        docNo: document.getElementById('inv-no').value.trim() || TourBuzzApp.generateDocNumber('invoice'),
+        date: document.getElementById('inv-date').value,
+        dueDate: document.getElementById('inv-due-date').value,
+        currency: curSelect.value,
+        tripRef: document.getElementById('inv-trip-ref').value.trim(),
+        preparedBy: document.getElementById('inv-prepared').value.trim(),
+        clientName: document.getElementById('inv-client-name').value.trim(),
+        clientCompany: document.getElementById('inv-client-company').value.trim(),
+        clientPhone: document.getElementById('inv-client-phone').value.trim(),
+        clientEmail: document.getElementById('inv-client-email').value.trim(),
+        clientAddress: document.getElementById('inv-client-address').value.trim(),
+        items,
+        subtotal,
+        taxPercent,
+        serviceFee,
+        discount,
+        grandTotal,
+        paidAmount,
+        dueAmount,
+        status,
+        notes: document.getElementById('inv-notes').value.trim(),
+        bankDetails: Array.from(invBanksWrap.querySelectorAll('.repeater-card')).map(c => ({
+          bankName: c.querySelector('.ib-name').value.trim(),
+          accountName: c.querySelector('.ib-accname').value.trim(),
+          accountNumber: c.querySelector('.ib-accno').value.trim(),
+          branch: c.querySelector('.ib-branch').value.trim(),
+          routingNo: c.querySelector('.ib-routing').value.trim()
+        }))
+      };
+    }
+
+    function populateForm(doc) {
+      document.getElementById('inv-no').value = doc.docNo || '';
+      document.getElementById('inv-date').value = doc.date || TourBuzzApp.todayISO();
+      document.getElementById('inv-due-date').value = doc.dueDate || '';
+      curSelect.value = doc.currency || 'BDT';
+      document.getElementById('inv-trip-ref').value = doc.tripRef || '';
+      document.getElementById('inv-prepared').value = doc.preparedBy || 'TourBuzz Accounts Desk';
+      document.getElementById('inv-client-name').value = doc.clientName || '';
+      document.getElementById('inv-client-company').value = doc.clientCompany || '';
+      document.getElementById('inv-client-phone').value = doc.clientPhone || '';
+      document.getElementById('inv-client-email').value = doc.clientEmail || '';
+      document.getElementById('inv-client-address').value = doc.clientAddress || '';
+      document.getElementById('inv-tax').value = doc.taxPercent ?? 0;
+      document.getElementById('inv-service').value = doc.serviceFee ?? 0;
+      document.getElementById('inv-discount').value = doc.discount ?? 0;
+      document.getElementById('inv-paid').value = doc.paidAmount ?? 0;
+      document.getElementById('inv-status').value = '';
+      document.getElementById('inv-notes').value = doc.notes || '';
+      itemsWrap.innerHTML = '';
+      (doc.items && doc.items.length ? doc.items : [{ description: '', qty: 1, unitPrice: 0 }]).forEach(addItemRow);
+      invBanksWrap.innerHTML = '';
+      const bList = Array.isArray(doc.bankDetails) ? doc.bankDetails : (CONFIG.BANK_DETAILS || []);
+      bList.forEach(addInvBankRow);
+    }
+
+    function resetDefaults() {
+      document.getElementById('inv-no').value = TourBuzzApp.generateDocNumber('invoice');
+      document.getElementById('inv-date').value = TourBuzzApp.todayISO();
+      document.getElementById('inv-due-date').value = TourBuzzApp.todayISO();
+      curSelect.value = 'BDT';
+      document.getElementById('inv-trip-ref').value = '';
+      document.getElementById('inv-prepared').value = 'TourBuzz Accounts Desk';
+      document.getElementById('inv-client-name').value = '';
+      document.getElementById('inv-client-company').value = '';
+      document.getElementById('inv-client-phone').value = '';
+      document.getElementById('inv-client-email').value = '';
+      document.getElementById('inv-client-address').value = '';
+      document.getElementById('inv-tax').value = 0;
+      document.getElementById('inv-service').value = 0;
+      document.getElementById('inv-discount').value = 0;
+      document.getElementById('inv-paid').value = 0;
+      document.getElementById('inv-status').value = '';
+      document.getElementById('inv-notes').value = 'Thank you for choosing TourBuzz Travel Services Ltd.';
+      itemsWrap.innerHTML = '';
+      addItemRow({ description: 'Tour Package & Travel Arrangement', qty: 1, unitPrice: 0 });
+      invBanksWrap.innerHTML = '';
+      (CONFIG.BANK_DETAILS || []).forEach(addInvBankRow);
+    }
+
+    makerCtrl = TourBuzzDocActions.bindMaker({
+      type: 'invoice',
+      previewSelector: '#a4-preview',
+      collectData,
+      populateForm,
+      resetDefaults
+    });
+  </script>
+</body>
+</html>

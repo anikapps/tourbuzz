@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tour Itinerary — TourBuzz TMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <div class="maker-action-bar">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Tour Itinerary Builder (Multi-Page A4 Supported)</div>
+        <div class="maker-action-group">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-save-sync">💾 Save &amp; Sync</button>
+          <button type="button" class="btn btn-navy btn-sm" id="btn-print-a4">🖨 Print A4</button>
+          <button type="button" class="btn btn-green btn-sm" id="btn-download-pdf">📄 Download PDF</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-reset-form">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="workspace-split">
+        <div class="form-panel">
+          <div class="form-section">
+            <div class="form-section-title">Itinerary Overview</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Itinerary Number</label>
+                <input type="text" id="itn-no" class="form-control mono">
+              </div>
+              <div class="form-group">
+                <label>Issue Date</label>
+                <input type="date" id="itn-date" class="form-control">
+              </div>
+              <div class="form-group full">
+                <label>Tour / Trip Title *</label>
+                <input type="text" id="itn-title" class="form-control" placeholder="e.g. 5 Days / 4 Nights Bangkok &amp; Pattaya Explorer">
+              </div>
+              <div class="form-group">
+                <label>Client / Group Name *</label>
+                <input type="text" id="itn-client" class="form-control" placeholder="e.g. Mr. Tanvir Ahmed &amp; Family">
+              </div>
+              <div class="form-group">
+                <label>Destination(s)</label>
+                <input type="text" id="itn-dest" class="form-control" placeholder="e.g. Bangkok &amp; Pattaya, Thailand">
+              </div>
+              <div class="form-group">
+                <label>Travel Dates</label>
+                <input type="text" id="itn-dates" class="form-control" placeholder="e.g. 15 Dec – 19 Dec 2026">
+              </div>
+              <div class="form-group">
+                <label>Duration</label>
+                <input type="text" id="itn-duration" class="form-control" placeholder="e.g. 5 Days / 4 Nights">
+              </div>
+              <div class="form-group">
+                <label>Pax Count</label>
+                <input type="text" id="itn-pax" class="form-control" placeholder="e.g. 4 Adults, 1 Child">
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select id="itn-status" class="form-control">
+                  <option value="CONFIRMED">CONFIRMED</option>
+                  <option value="PROPOSED">PROPOSED</option>
+                  <option value="DRAFT">DRAFT</option>
+                </select>
+              </div>
+              <div class="form-group full">
+                <label>Trip Summary / Flight &amp; Hotel Overview (Optional)</label>
+                <textarea id="itn-summary" class="form-control" rows="2" placeholder="Optional overview of flights, hotels, or tour guide contact..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">
+              <span>Day-by-Day Schedule</span>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-day">+ Add Day</button>
+            </div>
+            <div id="itn-days-list"></div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Inclusions, Exclusions &amp; Travel Notes (Optional)</div>
+            <div class="form-group full" style="margin-bottom:10px;">
+              <label>Inclusions (One per line — hidden if empty)</label>
+              <textarea id="itn-inclusions" class="form-control" rows="3" placeholder="Leave blank to hide on document"></textarea>
+            </div>
+            <div class="form-group full" style="margin-bottom:10px;">
+              <label>Exclusions (One per line — hidden if empty)</label>
+              <textarea id="itn-exclusions" class="form-control" rows="3" placeholder="Leave blank to hide on document"></textarea>
+            </div>
+            <div class="form-group full">
+              <label>Important Travel Notes / Emergency Contacts (Optional)</label>
+              <textarea id="itn-notes" class="form-control" rows="3" placeholder="Leave blank to hide on document"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-panel">
+          <div class="preview-scale-wrap" id="a4-preview"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="brand-assets.js"></script>
+  <script src="app.js"></script>
+  <script src="doc-renderers.js"></script>
+  <script src="smart-parser.js"></script>
+  <script src="doc-actions.js"></script>
+  <script>
+    TourBuzzApp.initShell('itinerary.html', 'Tour Itinerary');
+    const daysWrap = document.getElementById('itn-days-list');
+    let makerCtrl = null;
+
+    function renumberDays() {
+      Array.from(daysWrap.querySelectorAll('.repeater-card')).forEach((card, i) => {
+        const badge = card.querySelector('.day-label-num');
+        if (badge) badge.textContent = `Day ${i + 1}`;
+      });
+    }
+
+    function addDayCard(d = {}) {
+      const idx = daysWrap.querySelectorAll('.repeater-card').length + 1;
+      const card = document.createElement('div');
+      card.className = 'repeater-card';
+      card.innerHTML = `
+        <div class="repeater-header">
+          <span class="day-label-num">Day ${idx}</span>
+          <button type="button" class="btn btn-danger btn-sm btn-del-day">Remove</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Date (Optional)</label>
+            <input type="date" class="form-control d-date" value="${TourBuzzApp.escapeHtml(d.date || '')}">
+          </div>
+          <div class="form-group">
+            <label>Meals Included</label>
+            <input type="text" class="form-control d-meals" placeholder="e.g. Breakfast, Dinner" value="${TourBuzzApp.escapeHtml(d.meals || '')}">
+          </div>
+          <div class="form-group full">
+            <label>Day Headline / Route *</label>
+            <input type="text" class="form-control d-title" placeholder="e.g. Arrival in Bangkok &amp; Hotel Check-in" value="${TourBuzzApp.escapeHtml(d.title || '')}">
+          </div>
+          <div class="form-group full">
+            <label>Overnight Stay / Hotel (Optional)</label>
+            <input type="text" class="form-control d-hotel" placeholder="e.g. Amari Watergate Bangkok (4★)" value="${TourBuzzApp.escapeHtml(d.hotel || '')}">
+          </div>
+          <div class="form-group full">
+            <label>Activities &amp; Detailed Schedule</label>
+            <textarea class="form-control d-details" rows="3" placeholder="Write the day's timeline, transfers, sightseeing, and tips...">${TourBuzzApp.escapeHtml(d.details || '')}</textarea>
+          </div>
+        </div>
+      `;
+      card.querySelector('.btn-del-day').addEventListener('click', () => {
+        card.remove();
+        renumberDays();
+        if (makerCtrl) makerCtrl.renderNow();
+      });
+      daysWrap.appendChild(card);
+    }
+
+    document.getElementById('btn-add-day').addEventListener('click', () => {
+      addDayCard();
+      renumberDays();
+      if (makerCtrl) makerCtrl.renderNow();
+    });
+
+    function collectData() {
+      const days = Array.from(daysWrap.querySelectorAll('.repeater-card')).map((c, idx) => ({
+        dayNo: idx + 1,
+        date: c.querySelector('.d-date').value,
+        meals: c.querySelector('.d-meals').value.trim(),
+        title: c.querySelector('.d-title').value.trim(),
+        hotel: c.querySelector('.d-hotel').value.trim(),
+        details: c.querySelector('.d-details').value.trim()
+      }));
+
+      return {
+        type: 'itinerary',
+        docNo: document.getElementById('itn-no').value.trim() || TourBuzzApp.generateDocNumber('itinerary'),
+        date: document.getElementById('itn-date').value,
+        title: document.getElementById('itn-title').value.trim(),
+        clientName: document.getElementById('itn-client').value.trim(),
+        destination: document.getElementById('itn-dest').value.trim(),
+        travelDates: document.getElementById('itn-dates').value.trim(),
+        duration: document.getElementById('itn-duration').value.trim(),
+        paxCount: document.getElementById('itn-pax').value.trim(),
+        status: document.getElementById('itn-status').value,
+        summary: document.getElementById('itn-summary').value.trim(),
+        days,
+        inclusions: document.getElementById('itn-inclusions').value.trim(),
+        exclusions: document.getElementById('itn-exclusions').value.trim(),
+        notes: document.getElementById('itn-notes').value.trim()
+      };
+    }
+
+    function populateForm(doc) {
+      document.getElementById('itn-no').value = doc.docNo || '';
+      document.getElementById('itn-date').value = doc.date || TourBuzzApp.todayISO();
+      document.getElementById('itn-title').value = doc.title || '';
+      document.getElementById('itn-client').value = doc.clientName || '';
+      document.getElementById('itn-dest').value = doc.destination || '';
+      document.getElementById('itn-dates').value = doc.travelDates || '';
+      document.getElementById('itn-duration').value = doc.duration || '';
+      document.getElementById('itn-pax').value = doc.paxCount || '';
+      document.getElementById('itn-status').value = doc.status || 'CONFIRMED';
+      document.getElementById('itn-summary').value = doc.summary || '';
+      document.getElementById('itn-inclusions').value = doc.inclusions || '';
+      document.getElementById('itn-exclusions').value = doc.exclusions || '';
+      document.getElementById('itn-notes').value = doc.notes || '';
+      daysWrap.innerHTML = '';
+      (doc.days && doc.days.length ? doc.days : [{}]).forEach(addDayCard);
+      renumberDays();
+    }
+
+    function resetDefaults() {
+      document.getElementById('itn-no').value = TourBuzzApp.generateDocNumber('itinerary');
+      document.getElementById('itn-date').value = TourBuzzApp.todayISO();
+      document.getElementById('itn-title').value = '';
+      document.getElementById('itn-client').value = '';
+      document.getElementById('itn-dest').value = '';
+      document.getElementById('itn-dates').value = '';
+      document.getElementById('itn-duration').value = '3 Days / 2 Nights';
+      document.getElementById('itn-pax').value = '2 Adults';
+      document.getElementById('itn-status').value = 'CONFIRMED';
+      document.getElementById('itn-summary').value = '';
+      document.getElementById('itn-inclusions').value = '';
+      document.getElementById('itn-exclusions').value = '';
+      document.getElementById('itn-notes').value = '';
+      daysWrap.innerHTML = '';
+      addDayCard({ title: 'Arrival & Hotel Check-In', meals: 'Dinner', details: 'Meet and greet at airport followed by private transfer to hotel. Evening at leisure.' });
+      addDayCard({ title: 'Full-Day City Sightseeing', meals: 'Breakfast', details: 'After breakfast, enjoy a guided city tour covering major landmarks and local markets.' });
+      renumberDays();
+    }
+
+    makerCtrl = TourBuzzDocActions.bindMaker({
+      type: 'itinerary',
+      previewSelector: '#a4-preview',
+      collectData,
+      populateForm,
+      resetDefaults
+    });
+  </script>
+</body>
+</html>

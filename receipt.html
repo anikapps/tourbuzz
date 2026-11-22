@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Money Receipt Maker — TourBuzz TMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <div class="maker-action-bar">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Official Money Receipt Builder</div>
+        <div class="maker-action-group">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-save-sync">💾 Save &amp; Sync</button>
+          <button type="button" class="btn btn-navy btn-sm" id="btn-print-a4">🖨 Print A4</button>
+          <button type="button" class="btn btn-green btn-sm" id="btn-download-pdf">📄 Download PDF</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-reset-form">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="workspace-split">
+        <div class="form-panel">
+          <div class="form-section">
+            <div class="form-section-title">Receipt Metadata &amp; Invoice Link</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Receipt Number</label>
+                <input type="text" id="rct-no" class="form-control mono">
+              </div>
+              <div class="form-group">
+                <label>Receipt Date</label>
+                <input type="date" id="rct-date" class="form-control">
+              </div>
+              <div class="form-group full">
+                <label>Against Saved Invoice # (Auto-populates Client &amp; Balance)</label>
+                <select id="rct-invoice-picker" class="form-control">
+                  <option value="">— Select Saved Invoice (Optional) —</option>
+                </select>
+              </div>
+              <div class="form-group full">
+                <label>Against Invoice / File Reference (Manual or Linked)</label>
+                <input type="text" id="rct-against" class="form-control mono" placeholder="e.g. TB-INV-202611-0001">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Payment Details</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Received From *</label>
+                <input type="text" id="rct-client" class="form-control" placeholder="Client / Payer Name">
+              </div>
+              <div class="form-group">
+                <label>Payer Phone</label>
+                <input type="text" id="rct-phone" class="form-control" placeholder="+880 1XXX-XXXXXX">
+              </div>
+              <div class="form-group">
+                <label>Currency</label>
+                <select id="rct-currency" class="form-control"></select>
+              </div>
+              <div class="form-group">
+                <label>Amount Received *</label>
+                <input type="number" step="0.01" min="0" id="rct-amount" class="form-control mono" value="0">
+              </div>
+              <div class="form-group">
+                <label>Payment Mode</label>
+                <select id="rct-mode" class="form-control">
+                  <option value="Cash">Cash</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="bKash / Nagad">bKash / Nagad</option>
+                  <option value="Card / POS">Card / POS</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Cheque / Transaction Ref</label>
+                <input type="text" id="rct-tx" class="form-control mono" placeholder="TrxID / Bank Ref / Cheque #">
+              </div>
+              <div class="form-group full">
+                <label>Purpose / Particulars</label>
+                <input type="text" id="rct-purpose" class="form-control" placeholder="e.g. Advance payment for Thailand Group Tour">
+              </div>
+              <div class="form-group">
+                <label>Received By</label>
+                <input type="text" id="rct-by" class="form-control" value="Accounts Department, TourBuzz">
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select id="rct-status" class="form-control">
+                  <option value="PAID">PAID</option>
+                  <option value="PARTIAL">PARTIAL</option>
+                  <option value="PENDING">PENDING</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-panel">
+          <div class="preview-scale-wrap" id="a4-preview"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="brand-assets.js"></script>
+  <script src="app.js"></script>
+  <script src="doc-renderers.js"></script>
+  <script src="smart-parser.js"></script>
+  <script src="doc-actions.js"></script>
+  <script>
+    TourBuzzApp.initShell('receipt.html', 'Official Money Receipt');
+
+    const curSelect = document.getElementById('rct-currency');
+    curSelect.innerHTML = CONFIG.CURRENCIES.map(c => `<option value="${c.code}">${c.code} — ${c.name}</option>`).join('');
+
+    // Populate "Against Invoice #" dropdown from saved Invoices & Ticket Invoices
+    const picker = document.getElementById('rct-invoice-picker');
+    const savedInvoices = TourBuzzApp.getAllDocs().filter(d => d.type === 'invoice' || d.type === 'ticket-invoice');
+    savedInvoices.forEach(inv => {
+      const opt = document.createElement('option');
+      opt.value = inv.docNo;
+      const due = inv.dueAmount !== undefined ? inv.dueAmount : inv.grandTotal;
+      opt.textContent = `${inv.docNo} — ${inv.clientName || 'Client'} (Due: ${TourBuzzApp.formatMoney(due, inv.currency || 'BDT')})`;
+      picker.appendChild(opt);
+    });
+
+    let makerCtrl = null;
+
+    picker.addEventListener('change', () => {
+      const inv = savedInvoices.find(i => i.docNo === picker.value);
+      if (!inv) return;
+      document.getElementById('rct-against').value = inv.docNo;
+      document.getElementById('rct-client').value = inv.clientName || '';
+      document.getElementById('rct-phone').value = inv.clientPhone || '';
+      curSelect.value = inv.currency || 'BDT';
+      const due = Math.max(0, TourBuzzApp.toNumber(inv.grandTotal) - TourBuzzApp.toNumber(inv.paidAmount));
+      document.getElementById('rct-amount').value = due > 0 ? due : TourBuzzApp.toNumber(inv.grandTotal);
+      document.getElementById('rct-purpose').value = `Payment against ${inv.docNo}${inv.tripRef ? ' (' + inv.tripRef + ')' : ''}`;
+      if (makerCtrl) makerCtrl.renderNow();
+    });
+
+    function collectData() {
+      return {
+        type: 'receipt',
+        docNo: document.getElementById('rct-no').value.trim() || TourBuzzApp.generateDocNumber('receipt'),
+        date: document.getElementById('rct-date').value,
+        againstInvoice: document.getElementById('rct-against').value.trim(),
+        clientName: document.getElementById('rct-client').value.trim(),
+        clientPhone: document.getElementById('rct-phone').value.trim(),
+        currency: curSelect.value,
+        amount: TourBuzzApp.toNumber(document.getElementById('rct-amount').value),
+        paymentMode: document.getElementById('rct-mode').value,
+        txRef: document.getElementById('rct-tx').value.trim(),
+        purpose: document.getElementById('rct-purpose').value.trim(),
+        receivedBy: document.getElementById('rct-by').value.trim(),
+        status: document.getElementById('rct-status').value
+      };
+    }
+
+    function populateForm(doc) {
+      document.getElementById('rct-no').value = doc.docNo || '';
+      document.getElementById('rct-date').value = doc.date || TourBuzzApp.todayISO();
+      document.getElementById('rct-against').value = doc.againstInvoice || '';
+      document.getElementById('rct-client').value = doc.clientName || '';
+      document.getElementById('rct-phone').value = doc.clientPhone || '';
+      curSelect.value = doc.currency || 'BDT';
+      document.getElementById('rct-amount').value = doc.amount ?? 0;
+      document.getElementById('rct-mode').value = doc.paymentMode || 'Cash';
+      document.getElementById('rct-tx').value = doc.txRef || '';
+      document.getElementById('rct-purpose').value = doc.purpose || '';
+      document.getElementById('rct-by').value = doc.receivedBy || 'Accounts Department, TourBuzz';
+      document.getElementById('rct-status').value = doc.status || 'PAID';
+    }
+
+    function resetDefaults() {
+      document.getElementById('rct-no').value = TourBuzzApp.generateDocNumber('receipt');
+      document.getElementById('rct-date').value = TourBuzzApp.todayISO();
+      picker.value = '';
+      document.getElementById('rct-against').value = '';
+      document.getElementById('rct-client').value = '';
+      document.getElementById('rct-phone').value = '';
+      curSelect.value = 'BDT';
+      document.getElementById('rct-amount').value = 0;
+      document.getElementById('rct-mode').value = 'Cash';
+      document.getElementById('rct-tx').value = '';
+      document.getElementById('rct-purpose').value = 'Travel & Tourism Services';
+      document.getElementById('rct-by').value = 'Accounts Department, TourBuzz';
+      document.getElementById('rct-status').value = 'PAID';
+    }
+
+    makerCtrl = TourBuzzDocActions.bindMaker({
+      type: 'receipt',
+      previewSelector: '#a4-preview',
+      collectData,
+      populateForm,
+      resetDefaults
+    });
+  </script>
+</body>
+</html>

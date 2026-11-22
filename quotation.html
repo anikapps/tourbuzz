@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tour Quotation Builder — TourBuzz TMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <div class="maker-action-bar">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Tour &amp; Package Quotation Builder</div>
+        <div class="maker-action-group">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-save-sync">💾 Save &amp; Sync</button>
+          <button type="button" class="btn btn-navy btn-sm" id="btn-print-a4">🖨 Print A4</button>
+          <button type="button" class="btn btn-green btn-sm" id="btn-download-pdf">📄 Download PDF</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-reset-form">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="workspace-split">
+        <div class="form-panel">
+          <div class="form-section">
+            <div class="form-section-title">Quotation Overview</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Quotation Number</label>
+                <input type="text" id="qtn-no" class="form-control mono">
+              </div>
+              <div class="form-group">
+                <label>Currency</label>
+                <select id="qtn-currency" class="form-control"></select>
+              </div>
+              <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="qtn-date" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Valid Until</label>
+                <input type="date" id="qtn-valid" class="form-control">
+              </div>
+              <div class="form-group full">
+                <label>Trip / Package Subject *</label>
+                <input type="text" id="qtn-subject" class="form-control" placeholder="e.g. 5 Days / 4 Nights Dubai Luxury Holiday Package">
+              </div>
+              <div class="form-group">
+                <label>Client Name *</label>
+                <input type="text" id="qtn-client" class="form-control" placeholder="Client / Corporate Name">
+              </div>
+              <div class="form-group">
+                <label>Client Phone</label>
+                <input type="text" id="qtn-phone" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Client Email</label>
+                <input type="email" id="qtn-email" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Pax Count</label>
+                <input type="text" id="qtn-pax" class="form-control" value="2 Adults">
+              </div>
+              <div class="form-group">
+                <label>Tentative Travel Dates</label>
+                <input type="text" id="qtn-dates" class="form-control" placeholder="e.g. 15 Dec – 19 Dec 2026">
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select id="qtn-status" class="form-control">
+                  <option value="OPEN">OPEN</option>
+                  <option value="CONFIRMED">CONFIRMED</option>
+                  <option value="EXPIRED">EXPIRED</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">
+              <span>Package Pricing Breakdown</span>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-qitem">+ Add Row</button>
+            </div>
+            <div id="qtn-items-list"></div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Inclusions, Exclusions &amp; Terms</div>
+            <div class="form-group full" style="margin-bottom:10px;">
+              <label>Inclusions (One per line)</label>
+              <textarea id="qtn-inclusions" class="form-control" rows="4"></textarea>
+            </div>
+            <div class="form-group full" style="margin-bottom:10px;">
+              <label>Exclusions (One per line)</label>
+              <textarea id="qtn-exclusions" class="form-control" rows="4"></textarea>
+            </div>
+            <div class="form-group full">
+              <label>Terms &amp; Conditions</label>
+              <textarea id="qtn-terms" class="form-control" rows="4"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-panel">
+          <div class="preview-scale-wrap" id="a4-preview"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="brand-assets.js"></script>
+  <script src="app.js"></script>
+  <script src="doc-renderers.js"></script>
+  <script src="smart-parser.js"></script>
+  <script src="doc-actions.js"></script>
+  <script>
+    TourBuzzApp.initShell('quotation.html', 'Tour & Package Quotation');
+    const curSelect = document.getElementById('qtn-currency');
+    curSelect.innerHTML = CONFIG.CURRENCIES.map(c => `<option value="${c.code}">${c.code} — ${c.name}</option>`).join('');
+    const itemsWrap = document.getElementById('qtn-items-list');
+    let makerCtrl = null;
+
+    function addRow(it = {}) {
+      const card = document.createElement('div');
+      card.className = 'repeater-card';
+      card.innerHTML = `
+        <div class="repeater-header">
+          <span>Package Component</span>
+          <button type="button" class="btn btn-danger btn-sm btn-del">Remove</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Component Description</label>
+            <input type="text" class="form-control q-desc" placeholder="e.g. Per Person Package (Twin Sharing)" value="${TourBuzzApp.escapeHtml(it.description || '')}">
+          </div>
+          <div class="form-group">
+            <label>Qty / Pax</label>
+            <input type="number" min="0" class="form-control q-qty" value="${it.qty ?? 2}">
+          </div>
+          <div class="form-group">
+            <label>Unit Rate</label>
+            <input type="number" step="0.01" min="0" class="form-control q-price" value="${it.unitPrice ?? 0}">
+          </div>
+        </div>
+      `;
+      card.querySelector('.btn-del').addEventListener('click', () => {
+        card.remove();
+        if (makerCtrl) makerCtrl.renderNow();
+      });
+      itemsWrap.appendChild(card);
+    }
+
+    document.getElementById('btn-add-qitem').addEventListener('click', () => {
+      addRow({ qty: 1, unitPrice: 0 });
+      if (makerCtrl) makerCtrl.renderNow();
+    });
+
+    function collectData() {
+      const items = Array.from(itemsWrap.querySelectorAll('.repeater-card')).map(c => ({
+        description: c.querySelector('.q-desc').value.trim(),
+        qty: TourBuzzApp.toNumber(c.querySelector('.q-qty').value),
+        unitPrice: TourBuzzApp.toNumber(c.querySelector('.q-price').value)
+      }));
+      const grandTotal = items.reduce((s, i) => s + i.qty * i.unitPrice, 0);
+      return {
+        type: 'quotation',
+        docNo: document.getElementById('qtn-no').value.trim() || TourBuzzApp.generateDocNumber('quotation'),
+        date: document.getElementById('qtn-date').value,
+        validUntil: document.getElementById('qtn-valid').value,
+        currency: curSelect.value,
+        subject: document.getElementById('qtn-subject').value.trim(),
+        clientName: document.getElementById('qtn-client').value.trim(),
+        clientPhone: document.getElementById('qtn-phone').value.trim(),
+        clientEmail: document.getElementById('qtn-email').value.trim(),
+        paxCount: document.getElementById('qtn-pax').value.trim(),
+        travelDates: document.getElementById('qtn-dates').value.trim(),
+        status: document.getElementById('qtn-status').value,
+        items,
+        grandTotal,
+        inclusions: document.getElementById('qtn-inclusions').value.trim(),
+        exclusions: document.getElementById('qtn-exclusions').value.trim(),
+        terms: document.getElementById('qtn-terms').value.trim()
+      };
+    }
+
+    function populateForm(doc) {
+      document.getElementById('qtn-no').value = doc.docNo || '';
+      document.getElementById('qtn-date').value = doc.date || TourBuzzApp.todayISO();
+      document.getElementById('qtn-valid').value = doc.validUntil || '';
+      curSelect.value = doc.currency || 'BDT';
+      document.getElementById('qtn-subject').value = doc.subject || '';
+      document.getElementById('qtn-client').value = doc.clientName || '';
+      document.getElementById('qtn-phone').value = doc.clientPhone || '';
+      document.getElementById('qtn-email').value = doc.clientEmail || '';
+      document.getElementById('qtn-pax').value = doc.paxCount || '';
+      document.getElementById('qtn-dates').value = doc.travelDates || '';
+      document.getElementById('qtn-status').value = doc.status || 'OPEN';
+      document.getElementById('qtn-inclusions').value = doc.inclusions || '';
+      document.getElementById('qtn-exclusions').value = doc.exclusions || '';
+      document.getElementById('qtn-terms').value = doc.terms || '';
+      itemsWrap.innerHTML = '';
+      (doc.items && doc.items.length ? doc.items : [{ qty: 2, unitPrice: 0 }]).forEach(addRow);
+    }
+
+    function resetDefaults() {
+      const today = TourBuzzApp.todayISO();
+      const plus7 = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+      document.getElementById('qtn-no').value = TourBuzzApp.generateDocNumber('quotation');
+      document.getElementById('qtn-date').value = today;
+      document.getElementById('qtn-valid').value = plus7;
+      curSelect.value = 'BDT';
+      document.getElementById('qtn-subject').value = '';
+      document.getElementById('qtn-client').value = '';
+      document.getElementById('qtn-phone').value = '';
+      document.getElementById('qtn-email').value = '';
+      document.getElementById('qtn-pax').value = '2 Adults';
+      document.getElementById('qtn-dates').value = '';
+      document.getElementById('qtn-status').value = 'OPEN';
+      document.getElementById('qtn-inclusions').value = 'Return economy class airfare with baggage\n4-Star hotel accommodation with daily breakfast\nPrivate airport transfers & guided sightseeing';
+      document.getElementById('qtn-exclusions').value = 'Personal expenses, tips, and laundry\nLunch & dinner unless mentioned\nTravel insurance and optional excursions';
+      document.getElementById('qtn-terms').value = '1. Package rates are subject to room & seat availability at confirmation.\n2. 50% deposit upon booking; full balance due 7 days prior to departure.\n3. Standard airline and hotel cancellation policies apply.';
+      itemsWrap.innerHTML = '';
+      addRow({ description: 'Adult Twin-Sharing Package', qty: 2, unitPrice: 0 });
+    }
+
+    makerCtrl = TourBuzzDocActions.bindMaker({
+      type: 'quotation',
+      previewSelector: '#a4-preview',
+      collectData,
+      populateForm,
+      resetDefaults
+    });
+  </script>
+</body>
+</html>

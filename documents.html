@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master Vault — TourBuzz Travel Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <main class="page-body">
+        <div class="card" style="margin-bottom:20px;">
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;">
+            <div style="display:flex;flex-wrap:wrap;gap:10px;flex:1;min-width:260px;">
+              <input type="search" id="vault-search" class="form-control" style="max-width:250px;" placeholder="Filter by Doc #, PNR, Client, Staff...">
+              <select id="vault-type" class="form-control" style="max-width:175px;">
+                <option value="">All Document Types</option>
+                <option value="invoice">Invoice</option>
+                <option value="voucher">Hotel Voucher</option>
+                <option value="receipt">Money Receipt</option>
+                <option value="quotation">Tour Quotation</option>
+                <option value="ticket">Airline E-Ticket</option>
+                <option value="ticket-invoice">Air Ticket Invoice</option>
+                <option value="visa">Visa Document</option>
+                <option value="itinerary">Tour Itinerary</option>
+              </select>
+              <select id="vault-staff" class="form-control" style="max-width:160px;">
+                <option value="">All Staff</option>
+              </select>
+              <select id="vault-sync-filter" class="form-control" style="max-width:155px;">
+                <option value="">All Sync States</option>
+                <option value="cloud">Cloud Synced</option>
+                <option value="local">Local / Queued</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-outline btn-sm" id="btn-vault-pull">🔄 Sync GitHub</button>
+              <button type="button" class="btn btn-navy btn-sm" id="btn-export-json">⬇ Backup JSON</button>
+              <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+                ⬆ Restore JSON
+                <input type="file" id="input-import-json" accept=".json" style="display:none;">
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">All Saved Records (<span id="vault-count">0</span>)</h2>
+            <span style="font-size:12px;color:var(--text-muted);">Merges Local Cache + GitHub Cloud Repository automatically</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Document #</th>
+                  <th>Type</th>
+                  <th>Client / Guest / Pax</th>
+                  <th>Date</th>
+                  <th>Total / Amount</th>
+                  <th>Staff</th>
+                  <th>Status</th>
+                  <th>Sync</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="vault-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    TourBuzzApp.initShell('documents.html', 'Master Document Vault');
+
+    const searchEl = document.getElementById('vault-search');
+    const typeEl = document.getElementById('vault-type');
+    const staffEl = document.getElementById('vault-staff');
+    const syncEl = document.getElementById('vault-sync-filter');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('q')) searchEl.value = urlParams.get('q');
+
+    function statusBadge(status) {
+      const s = String(status || 'ACTIVE').toUpperCase();
+      if (['PAID', 'CONFIRMED', 'ISSUED', 'OK', 'APPROVED'].includes(s)) return `<span class="badge badge-green">${TourBuzzApp.escapeHtml(s)}</span>`;
+      if (['PARTIAL', 'PROCESSING', 'OPEN', 'PENDING', 'PROPOSED'].includes(s)) return `<span class="badge badge-amber">${TourBuzzApp.escapeHtml(s)}</span>`;
+      if (['UNPAID', 'DUE', 'CANCELLED'].includes(s)) return `<span class="badge badge-red">${TourBuzzApp.escapeHtml(s)}</span>`;
+      return `<span class="badge badge-navy">${TourBuzzApp.escapeHtml(s)}</span>`;
+    }
+
+    function populateStaffFilter(docs) {
+      const current = staffEl.value;
+      const names = Array.from(new Set(docs.map(d => d.updatedBy || d.createdBy).filter(Boolean))).sort();
+      staffEl.innerHTML = `<option value="">All Staff</option>` + names.map(n => `<option value="${TourBuzzApp.escapeHtml(n)}">${TourBuzzApp.escapeHtml(n)}</option>`).join('');
+      if (names.includes(current)) staffEl.value = current;
+    }
+
+    function renderVault() {
+      const allDocs = TourBuzzApp.getAllDocs();
+      populateStaffFilter(allDocs);
+
+      const q = searchEl.value.trim().toLowerCase();
+      const t = typeEl.value;
+      const st = staffEl.value;
+      const sf = syncEl.value;
+
+      const filtered = allDocs.filter(d => {
+        if (t && d.type !== t) return false;
+        if (st && (d.updatedBy || d.createdBy || '') !== st) return false;
+        if (sf === 'cloud' && !d.cloudSynced) return false;
+        if (sf === 'local' && d.cloudSynced) return false;
+        if (q && !JSON.stringify(d).toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      document.getElementById('vault-count').textContent = filtered.length;
+      const tbody = document.getElementById('vault-tbody');
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding:32px;color:var(--text-muted);">No matching records found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(d => {
+        const meta = CONFIG.DOC_TYPES[d.type] || { label: d.type };
+        const amt = d.grandTotal !== undefined ? TourBuzzApp.formatMoney(d.grandTotal, d.currency || 'BDT')
+          : (d.amount !== undefined ? TourBuzzApp.formatMoney(d.amount, d.currency || 'BDT') : '—');
+        const safeNo = TourBuzzApp.escapeHtml(d.docNo);
+        const staffLabel = d.updatedBy || d.createdBy || '—';
+        const qtnConvertBtn = d.type === 'quotation'
+          ? `<button type="button" class="btn btn-green btn-sm" title="Convert to Invoice" onclick="TourBuzzApp.convertQuotationToInvoice('${safeNo}')">→ Inv</button>`
+          : '';
+        return `
+          <tr>
+            <td class="mono"><strong>${safeNo}</strong>${d.pnr ? `<div style="font-size:11px;color:var(--tb-orange);">PNR: ${TourBuzzApp.escapeHtml(d.pnr)}</div>` : ''}</td>
+            <td>${TourBuzzApp.escapeHtml(meta.label)}</td>
+            <td>${TourBuzzApp.escapeHtml(d.clientName || '—')}</td>
+            <td class="mono">${TourBuzzApp.escapeHtml(TourBuzzApp.formatDate(d.date))}</td>
+            <td class="mono">${TourBuzzApp.escapeHtml(amt)}</td>
+            <td style="font-size:12px;">${TourBuzzApp.escapeHtml(staffLabel)}</td>
+            <td>${statusBadge(d.status)}</td>
+            <td>${d.cloudSynced ? '<span class="badge badge-green">Cloud</span>' : '<span class="badge badge-orange">Local</span>'}</td>
+            <td class="text-right" style="white-space:nowrap;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="TourBuzzApp.openForEdit('${safeNo}')">Edit</button>
+              <button type="button" class="btn btn-outline btn-sm" title="Clone Document" onclick="TourBuzzApp.cloneDocument('${safeNo}')">📋</button>
+              ${qtnConvertBtn}
+              <button type="button" class="btn btn-outline btn-sm" title="WhatsApp Summary" onclick="waShareDoc('${safeNo}')">💬</button>
+              <button type="button" class="btn btn-danger btn-sm" title="Delete" onclick="removeDoc('${safeNo}')">✕</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    window.waShareDoc = function (docNo) {
+      const doc = TourBuzzApp.getDoc(docNo);
+      if (doc) TourBuzzApp.shareToWhatsApp(doc);
+    };
+
+    window.removeDoc = async function (docNo) {
+      const hasCloud = TourBuzzApp.isGitHubConfigured() || TourBuzzApp.isSheetsConfigured();
+      const deleteCloud = hasCloud
+        ? confirm(`Delete ${docNo} from BOTH this PC and GitHub Cloud?\n\nClick OK to delete from Cloud too, or Cancel to abort.`)
+        : confirm(`Delete ${docNo} from local vault?`);
+      if (!deleteCloud) return;
+      await TourBuzzApp.deleteDocWithCloud(docNo, hasCloud);
+      renderVault();
+      TourBuzzApp.toast(`Deleted ${docNo}${TourBuzzApp.isGitHubConfigured() ? ' (local + GitHub Cloud)' : ''}.`, 'info');
+    };
+
+    searchEl.addEventListener('input', renderVault);
+    typeEl.addEventListener('change', renderVault);
+    staffEl.addEventListener('change', renderVault);
+    syncEl.addEventListener('change', renderVault);
+    document.getElementById('btn-vault-pull').addEventListener('click', () => TourBuzzApp.syncAll(false));
+    document.getElementById('btn-export-json').addEventListener('click', () => {
+      TourBuzzApp.exportBackupJSON();
+      TourBuzzApp.toast('Exported full JSON vault + client directory backup.', 'success');
+    });
+
+    document.getElementById('input-import-json').addEventListener('change', async e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const count = TourBuzzApp.importBackupJSON(text);
+        renderVault();
+        TourBuzzApp.toast(`Restored & merged ${count} documents from JSON backup.`, 'success');
+      } catch (err) {
+        TourBuzzApp.toast(`Restore failed: ${err.message}`, 'error');
+      }
+      e.target.value = '';
+    });
+
+    window.addEventListener('tourbuzz:synced', renderVault);
+    renderVault();
+    if (TourBuzzApp.isSheetsConfigured() || TourBuzzApp.isGitHubConfigured()) TourBuzzApp.syncAll(true);
+  </script>
+</body>
+</html>

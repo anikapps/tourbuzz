@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Airline E-Ticket Generator — TourBuzz TMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <div class="maker-action-bar">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">GDS-Style Airline E-Ticket Generator (CODE-128 + QR)</div>
+        <div class="maker-action-group">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-save-sync">💾 Save &amp; Sync</button>
+          <button type="button" class="btn btn-navy btn-sm" id="btn-print-a4">🖨 Print A4</button>
+          <button type="button" class="btn btn-green btn-sm" id="btn-download-pdf">📄 Download PDF</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-reset-form">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="workspace-split">
+        <div class="form-panel">
+          <div class="form-section">
+            <div class="form-section-title">Booking &amp; GDS Reference</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Document Number</label>
+                <input type="text" id="tkt-no" class="form-control mono">
+              </div>
+              <div class="form-group">
+                <label>Issue Date</label>
+                <input type="date" id="tkt-date" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Booking PNR (6-Char) *</label>
+                <input type="text" id="tkt-pnr" class="form-control mono" maxlength="12" placeholder="e.g. X7K9PQ" style="text-transform:uppercase;">
+              </div>
+              <div class="form-group">
+                <label>Airline Ref / GDS PNR</label>
+                <input type="text" id="tkt-airline-pnr" class="form-control mono" maxlength="12" placeholder="Optional" style="text-transform:uppercase;">
+              </div>
+              <div class="form-group">
+                <label>Ticket Status</label>
+                <select id="tkt-status" class="form-control">
+                  <option value="ISSUED">ISSUED</option>
+                  <option value="CONFIRMED">CONFIRMED</option>
+                  <option value="HOLD">HOLD</option>
+                  <option value="CANCELLED">CANCELLED</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Primary Contact / Client</label>
+                <input type="text" id="tkt-contact" class="form-control" placeholder="Lead passenger or corporate contact">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">
+              <span>Passengers (Multi-Passenger Table)</span>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-pax">+ Add Passenger</button>
+            </div>
+            <div id="tkt-pax-list"></div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">
+              <span>Flight Segments (100+ Airlines &amp; Airports Autocomplete)</span>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-seg">+ Add Segment</button>
+            </div>
+            <div id="tkt-seg-list"></div>
+          </div>
+        </div>
+
+        <div class="preview-panel">
+          <div class="preview-scale-wrap" id="a4-preview"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="aviation-data.js"></script>
+  <script src="brand-assets.js"></script>
+  <script src="app.js"></script>
+  <script src="doc-renderers.js"></script>
+  <script src="smart-parser.js"></script>
+  <script src="doc-actions.js"></script>
+  <script>
+    TourBuzzApp.initShell('ticket.html', 'Airline E-Ticket Generator');
+
+    const paxWrap = document.getElementById('tkt-pax-list');
+    const segWrap = document.getElementById('tkt-seg-list');
+    let makerCtrl = null;
+
+    function addPassengerRow(p = {}) {
+      const card = document.createElement('div');
+      card.className = 'repeater-card';
+      card.innerHTML = `
+        <div class="repeater-header">
+          <span>Passenger</span>
+          <button type="button" class="btn btn-danger btn-sm btn-del-pax">Remove</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Full Name (Surname / Given Name)</label>
+            <input type="text" class="form-control p-name" placeholder="e.g. RAHMAN/MD ANIK MR" value="${TourBuzzApp.escapeHtml(p.name || '')}" style="text-transform:uppercase;">
+          </div>
+          <div class="form-group">
+            <label>Pax Type</label>
+            <select class="form-control p-type">
+              <option value="ADT">ADT (Adult)</option>
+              <option value="CHD">CHD (Child)</option>
+              <option value="INF">INF (Infant)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>13-Digit E-Ticket Number</label>
+            <input type="text" class="form-control mono p-tkt" placeholder="997-2410987654" value="${TourBuzzApp.escapeHtml(p.ticketNo || '')}">
+          </div>
+          <div class="form-group">
+            <label>Seat</label>
+            <input type="text" class="form-control mono p-seat" placeholder="e.g. 14A or TBA" value="${TourBuzzApp.escapeHtml(p.seat || 'TBA')}">
+          </div>
+        </div>
+      `;
+      if (p.type) card.querySelector('.p-type').value = p.type;
+      card.querySelector('.btn-del-pax').addEventListener('click', () => {
+        card.remove();
+        if (makerCtrl) makerCtrl.renderNow();
+      });
+      paxWrap.appendChild(card);
+    }
+
+    function addSegmentRow(s = {}) {
+      const card = document.createElement('div');
+      card.className = 'repeater-card';
+      card.innerHTML = `
+        <div class="repeater-header">
+          <span>Flight Segment</span>
+          <button type="button" class="btn btn-danger btn-sm btn-del-seg">Remove</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Airline (Search IATA / Name)</label>
+            <input type="text" class="form-control s-airline-search" placeholder="Type BG, EK, QR, SQ..." value="${TourBuzzApp.escapeHtml(s.airlineName ? `${s.airlineIata} — ${s.airlineName}` : '')}">
+            <input type="hidden" class="s-airline-iata" value="${TourBuzzApp.escapeHtml(s.airlineIata || 'BG')}">
+            <input type="hidden" class="s-airline-name" value="${TourBuzzApp.escapeHtml(s.airlineName || 'Biman Bangladesh Airlines')}">
+          </div>
+          <div class="form-group">
+            <label>Flight Number</label>
+            <input type="text" class="form-control mono s-flt" placeholder="e.g. BG 347" value="${TourBuzzApp.escapeHtml(s.flightNo || 'BG 347')}">
+          </div>
+
+          <div class="form-group">
+            <label>Origin Airport (Search IATA / City)</label>
+            <input type="text" class="form-control s-orig-search" placeholder="Type DAC, CGP, DXB..." value="${TourBuzzApp.escapeHtml(s.originIata ? `${s.originIata} — ${s.originCity}` : '')}">
+            <input type="hidden" class="s-orig-iata" value="${TourBuzzApp.escapeHtml(s.originIata || 'DAC')}">
+            <input type="hidden" class="s-orig-city" value="${TourBuzzApp.escapeHtml(s.originCity || 'Dhaka')}">
+          </div>
+          <div class="form-group">
+            <label>Origin Terminal</label>
+            <input type="text" class="form-control mono s-orig-term" placeholder="e.g. 2" value="${TourBuzzApp.escapeHtml(s.originTerminal || '2')}">
+          </div>
+
+          <div class="form-group">
+            <label>Destination Airport (Search IATA / City)</label>
+            <input type="text" class="form-control s-dest-search" placeholder="Type DXB, DOH, SIN, BKK..." value="${TourBuzzApp.escapeHtml(s.destIata ? `${s.destIata} — ${s.destCity}` : '')}">
+            <input type="hidden" class="s-dest-iata" value="${TourBuzzApp.escapeHtml(s.destIata || 'DXB')}">
+            <input type="hidden" class="s-dest-city" value="${TourBuzzApp.escapeHtml(s.destCity || 'Dubai')}">
+          </div>
+          <div class="form-group">
+            <label>Destination Terminal</label>
+            <input type="text" class="form-control mono s-dest-term" placeholder="e.g. 1" value="${TourBuzzApp.escapeHtml(s.destTerminal || '1')}">
+          </div>
+
+          <div class="form-group">
+            <label>Departure Date</label>
+            <input type="date" class="form-control s-dep-date" value="${TourBuzzApp.escapeHtml(s.depDate || TourBuzzApp.todayISO())}">
+          </div>
+          <div class="form-group">
+            <label>Departure Time (24h)</label>
+            <input type="time" class="form-control mono s-dep-time" value="${TourBuzzApp.escapeHtml(s.depTime || '19:45')}">
+          </div>
+          <div class="form-group">
+            <label>Arrival Date</label>
+            <input type="date" class="form-control s-arr-date" value="${TourBuzzApp.escapeHtml(s.arrDate || TourBuzzApp.todayISO())}">
+          </div>
+          <div class="form-group">
+            <label>Arrival Time (24h)</label>
+            <input type="time" class="form-control mono s-arr-time" value="${TourBuzzApp.escapeHtml(s.arrTime || '23:15')}">
+          </div>
+
+          <div class="form-group">
+            <label>Cabin / Booking Class</label>
+            <input type="text" class="form-control s-cabin" placeholder="Economy (Y)" value="${TourBuzzApp.escapeHtml(s.cabin || 'Economy (Y)')}">
+          </div>
+          <div class="form-group">
+            <label>Fare Basis</label>
+            <input type="text" class="form-control mono s-fare" placeholder="YOWBD" value="${TourBuzzApp.escapeHtml(s.fareBasis || 'YOWBD')}">
+          </div>
+          <div class="form-group">
+            <label>Baggage Allowance</label>
+            <input type="text" class="form-control s-bag" placeholder="30 KG + 7 KG Cabin" value="${TourBuzzApp.escapeHtml(s.baggage || '30 KG + 7 KG Cabin')}">
+          </div>
+          <div class="form-group">
+            <label>Segment Status</label>
+            <select class="form-control s-status">
+              <option value="CONFIRMED">CONFIRMED</option>
+              <option value="OK">OK</option>
+              <option value="WAITLIST">WAITLIST</option>
+              <option value="RQ">RQ</option>
+            </select>
+          </div>
+        </div>
+      `;
+
+      if (s.status) card.querySelector('.s-status').value = s.status;
+
+      // Wire keyboard-navigable autocomplete for Airline, Origin Airport, Destination Airport
+      const airlineInput = card.querySelector('.s-airline-search');
+      airlineInput.addEventListener('input', () => {
+        const raw = airlineInput.value.trim();
+        const codeMatch = raw.match(/^([A-Za-z0-9]{2})(?:\s|—|-|$)/);
+        if (codeMatch && window.AVIATION_DATA) {
+          const found = window.AVIATION_DATA.AIRLINES.find(a => a.iata.toUpperCase() === codeMatch[1].toUpperCase());
+          if (found) {
+            card.querySelector('.s-airline-iata').value = found.iata;
+            card.querySelector('.s-airline-name').value = found.name;
+          }
+        }
+      });
+      TourBuzzApp.attachAviationAutocomplete(airlineInput, 'airline', item => {
+        airlineInput.value = `${item.iata} — ${item.name}`;
+        card.querySelector('.s-airline-iata').value = item.iata;
+        card.querySelector('.s-airline-name').value = item.name;
+        const fltInput = card.querySelector('.s-flt');
+        if (!fltInput.value.trim() || /^[A-Z0-9]{2}\s*\d*$/i.test(fltInput.value.trim())) {
+          fltInput.value = `${item.iata} `;
+        }
+        if (makerCtrl) makerCtrl.renderNow();
+      });
+
+      const origInput = card.querySelector('.s-orig-search');
+      TourBuzzApp.attachAviationAutocomplete(origInput, 'airport', item => {
+        origInput.value = `${item.iata} — ${item.city} (${item.name})`;
+        card.querySelector('.s-orig-iata').value = item.iata;
+        card.querySelector('.s-orig-city').value = item.city;
+        if (makerCtrl) makerCtrl.renderNow();
+      });
+
+      const destInput = card.querySelector('.s-dest-search');
+      TourBuzzApp.attachAviationAutocomplete(destInput, 'airport', item => {
+        destInput.value = `${item.iata} — ${item.city} (${item.name})`;
+        card.querySelector('.s-dest-iata').value = item.iata;
+        card.querySelector('.s-dest-city').value = item.city;
+        if (makerCtrl) makerCtrl.renderNow();
+      });
+
+      card.querySelector('.btn-del-seg').addEventListener('click', () => {
+        card.remove();
+        if (makerCtrl) makerCtrl.renderNow();
+      });
+      segWrap.appendChild(card);
+    }
+
+    document.getElementById('btn-add-pax').addEventListener('click', () => {
+      addPassengerRow();
+      if (makerCtrl) makerCtrl.renderNow();
+    });
+    document.getElementById('btn-add-seg').addEventListener('click', () => {
+      addSegmentRow();
+      if (makerCtrl) makerCtrl.renderNow();
+    });
+
+    function collectData() {
+      const passengers = Array.from(paxWrap.querySelectorAll('.repeater-card')).map(c => ({
+        name: c.querySelector('.p-name').value.trim().toUpperCase(),
+        type: c.querySelector('.p-type').value,
+        ticketNo: c.querySelector('.p-tkt').value.trim(),
+        seat: c.querySelector('.p-seat').value.trim().toUpperCase()
+      }));
+
+      const segments = Array.from(segWrap.querySelectorAll('.repeater-card')).map(c => ({
+        airlineIata: c.querySelector('.s-airline-iata').value.trim().toUpperCase(),
+        airlineName: c.querySelector('.s-airline-name').value.trim(),
+        flightNo: c.querySelector('.s-flt').value.trim().toUpperCase(),
+        originIata: c.querySelector('.s-orig-iata').value.trim().toUpperCase(),
+        originCity: c.querySelector('.s-orig-city').value.trim(),
+        originTerminal: c.querySelector('.s-orig-term').value.trim(),
+        destIata: c.querySelector('.s-dest-iata').value.trim().toUpperCase(),
+        destCity: c.querySelector('.s-dest-city').value.trim(),
+        destTerminal: c.querySelector('.s-dest-term').value.trim(),
+        depDate: c.querySelector('.s-dep-date').value,
+        depTime: c.querySelector('.s-dep-time').value,
+        arrDate: c.querySelector('.s-arr-date').value,
+        arrTime: c.querySelector('.s-arr-time').value,
+        cabin: c.querySelector('.s-cabin').value.trim(),
+        fareBasis: c.querySelector('.s-fare').value.trim().toUpperCase(),
+        baggage: c.querySelector('.s-bag').value.trim(),
+        status: c.querySelector('.s-status').value
+      }));
+
+      const leadPax = passengers.find(p => p.name)?.name || '';
+      const contact = document.getElementById('tkt-contact').value.trim();
+
+      return {
+        type: 'ticket',
+        docNo: document.getElementById('tkt-no').value.trim() || TourBuzzApp.generateDocNumber('ticket'),
+        date: document.getElementById('tkt-date').value,
+        pnr: document.getElementById('tkt-pnr').value.trim().toUpperCase(),
+        airlinePnr: document.getElementById('tkt-airline-pnr').value.trim().toUpperCase(),
+        status: document.getElementById('tkt-status').value,
+        clientName: contact || leadPax || 'Passenger',
+        passengers,
+        segments
+      };
+    }
+
+    function populateForm(doc) {
+      document.getElementById('tkt-no').value = doc.docNo || '';
+      document.getElementById('tkt-date').value = doc.date || TourBuzzApp.todayISO();
+      document.getElementById('tkt-pnr').value = doc.pnr || '';
+      document.getElementById('tkt-airline-pnr').value = doc.airlinePnr || '';
+      document.getElementById('tkt-status').value = doc.status || 'ISSUED';
+      document.getElementById('tkt-contact').value = doc.clientName || '';
+      paxWrap.innerHTML = '';
+      (doc.passengers && doc.passengers.length ? doc.passengers : [{}]).forEach(addPassengerRow);
+      segWrap.innerHTML = '';
+      (doc.segments && doc.segments.length ? doc.segments : [{}]).forEach(addSegmentRow);
+    }
+
+    function resetDefaults() {
+      document.getElementById('tkt-no').value = TourBuzzApp.generateDocNumber('ticket');
+      document.getElementById('tkt-date').value = TourBuzzApp.todayISO();
+      document.getElementById('tkt-pnr').value = 'TB' + Math.random().toString(36).substring(2, 6).toUpperCase();
+      document.getElementById('tkt-airline-pnr').value = '';
+      document.getElementById('tkt-status').value = 'ISSUED';
+      document.getElementById('tkt-contact').value = '';
+      paxWrap.innerHTML = '';
+      addPassengerRow({ name: '', type: 'ADT', ticketNo: '997-', seat: 'TBA' });
+      segWrap.innerHTML = '';
+      addSegmentRow({
+        airlineIata: 'BG',
+        airlineName: 'Biman Bangladesh Airlines',
+        flightNo: 'BG 347',
+        originIata: 'DAC',
+        originCity: 'Dhaka',
+        originTerminal: '2',
+        destIata: 'DXB',
+        destCity: 'Dubai',
+        destTerminal: '1',
+        depDate: TourBuzzApp.todayISO(),
+        depTime: '19:45',
+        arrDate: TourBuzzApp.todayISO(),
+        arrTime: '23:15',
+        cabin: 'Economy (Y)',
+        fareBasis: 'YOWBD',
+        baggage: '30 KG + 7 KG Cabin',
+        status: 'CONFIRMED'
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      makerCtrl = TourBuzzDocActions.bindMaker({
+        type: 'ticket',
+        previewSelector: '#a4-preview',
+        collectData,
+        populateForm,
+        resetDefaults
+      });
+    });
+  </script>
+</body>
+</html>

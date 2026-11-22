@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Executive Dashboard — TourBuzz Travel Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <main class="page-body">
+        <!-- Executive KPI Row -->
+        <section class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Total Vault Documents</div>
+            <div class="kpi-value mono" id="kpi-total-docs">0</div>
+            <div class="kpi-sub" id="kpi-cloud-count">0 cloud synced</div>
+          </div>
+          <div class="kpi-card navy">
+            <div class="kpi-label">Invoiced Volume (BDT)</div>
+            <div class="kpi-value mono" id="kpi-invoiced">৳0.00</div>
+            <div class="kpi-sub">Commercial &amp; Air Ticket Invoices</div>
+          </div>
+          <div class="kpi-card green">
+            <div class="kpi-label">Collected / Receipts (BDT)</div>
+            <div class="kpi-value mono" id="kpi-collected">৳0.00</div>
+            <div class="kpi-sub">Paid balances &amp; receipts</div>
+          </div>
+          <div class="kpi-card amber">
+            <div class="kpi-label">Outstanding Due (BDT)</div>
+            <div class="kpi-value mono" id="kpi-due">৳0.00</div>
+            <div class="kpi-sub" id="kpi-last-sync">Last sync: Not synced yet</div>
+          </div>
+        </section>
+
+        <!-- Quick Launchers -->
+        <section style="margin-bottom:24px;">
+          <div class="card-header" style="margin-bottom:12px;">
+            <h2 class="card-title">Quick Document Launchers</h2>
+            <a href="documents.html" class="btn btn-outline btn-sm">Open Master Vault →</a>
+          </div>
+          <div class="launcher-grid">
+            <a class="launcher-card" href="invoice.html">
+              <div class="launcher-icon">🧾</div>
+              <div>
+                <div class="launcher-title">Invoice</div>
+                <div class="launcher-desc">Multi-currency tour billing</div>
+              </div>
+            </a>
+            <a class="launcher-card" href="voucher.html">
+              <div class="launcher-icon">🏨</div>
+              <div>
+                <div class="launcher-title">Hotel Voucher</div>
+                <div class="launcher-desc">Multi-hotel &amp; meal plans</div>
+              </div>
+            </a>
+            <a class="launcher-card" href="receipt.html">
+              <div class="launcher-icon">💵</div>
+              <div>
+                <div class="launcher-title">Money Receipt</div>
+                <div class="launcher-desc">Linked to saved invoices</div>
+              </div>
+            </a>
+            <a class="launcher-card" href="quotation.html">
+              <div class="launcher-icon">📋</div>
+              <div>
+                <div class="launcher-title">Tour Quotation</div>
+                <div class="launcher-desc">Inclusions &amp; package rates</div>
+              </div>
+            </a>
+            <a class="launcher-card" href="ticket.html">
+              <div class="launcher-icon">✈️</div>
+              <div>
+                <div class="launcher-title">Airline E-Ticket</div>
+                <div class="launcher-desc">GDS itinerary + Barcode/QR</div>
+              </div>
+            </a>
+            <a class="launcher-card" href="ticket-invoice.html">
+              <div class="launcher-icon">🎫</div>
+              <div>
+                <div class="launcher-title">Air Ticket Invoice</div>
+                <div class="launcher-desc">Import directly from tickets</div>
+              </div>
+            </a>
+            <a class="launcher-card" href="visa.html">
+              <div class="launcher-icon">🛂</div>
+              <div>
+                <div class="launcher-title">Visa Checklist</div>
+                <div class="launcher-desc">Submitted docs &amp; file ref</div>
+              </div>
+            </a>
+            <a class="launcher-card" href="itinerary.html">
+              <div class="launcher-icon">🗺️</div>
+              <div>
+                <div class="launcher-title">Tour Itinerary</div>
+                <div class="launcher-desc">Multi-page day-by-day plan</div>
+              </div>
+            </a>
+            <a class="launcher-card" href="clients.html">
+              <div class="launcher-icon">👥</div>
+              <div>
+                <div class="launcher-title">Client Directory</div>
+                <div class="launcher-desc">Auto-saved client profiles</div>
+              </div>
+            </a>
+            <a class="launcher-card" href="settings.html">
+              <div class="launcher-icon">⚙️</div>
+              <div>
+                <div class="launcher-title">Cloud &amp; Settings</div>
+                <div class="launcher-desc">GitHub PAT &amp; Google Sheets</div>
+              </div>
+            </a>
+          </div>
+        </section>
+
+        <!-- Recent Activity Table -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">Recent Documents</h2>
+            <div style="display:flex;gap:8px;">
+              <button type="button" class="btn btn-outline btn-sm" id="btn-dash-sync">🔄 Pull Cloud</button>
+              <a href="documents.html" class="btn btn-navy btn-sm">View All</a>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Document #</th>
+                  <th>Type</th>
+                  <th>Client / Passenger</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Sync</th>
+                  <th class="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="recent-docs-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    TourBuzzApp.initShell('index.html', 'Executive Dashboard');
+
+    function statusBadge(status) {
+      const s = String(status || 'ACTIVE').toUpperCase();
+      if (['PAID', 'CONFIRMED', 'ISSUED', 'OK', 'APPROVED'].includes(s)) return `<span class="badge badge-green">${TourBuzzApp.escapeHtml(s)}</span>`;
+      if (['PARTIAL', 'PROCESSING', 'OPEN', 'PENDING'].includes(s)) return `<span class="badge badge-amber">${TourBuzzApp.escapeHtml(s)}</span>`;
+      if (['UNPAID', 'DUE', 'CANCELLED'].includes(s)) return `<span class="badge badge-red">${TourBuzzApp.escapeHtml(s)}</span>`;
+      return `<span class="badge badge-navy">${TourBuzzApp.escapeHtml(s)}</span>`;
+    }
+
+    function renderDashboard() {
+      const docs = TourBuzzApp.getAllDocs();
+      const syncedCount = docs.filter(d => d.cloudSynced).length;
+
+      let totalInvoiced = 0;
+      let totalCollected = 0;
+      let totalDue = 0;
+
+      docs.forEach(d => {
+        if ((d.type === 'invoice' || d.type === 'ticket-invoice') && (d.currency || 'BDT') === 'BDT') {
+          const grand = TourBuzzApp.toNumber(d.grandTotal);
+          const paid = TourBuzzApp.toNumber(d.paidAmount);
+          totalInvoiced += grand;
+          totalCollected += paid;
+          totalDue += Math.max(0, grand - paid);
+        }
+      });
+
+      document.getElementById('kpi-total-docs').textContent = docs.length;
+      document.getElementById('kpi-cloud-count').textContent = `${syncedCount} of ${docs.length} cloud synced`;
+      document.getElementById('kpi-invoiced').textContent = `৳${totalInvoiced.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('kpi-collected').textContent = `৳${totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+      document.getElementById('kpi-due').textContent = `৳${totalDue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+      const lastSync = localStorage.getItem(CONFIG.STORAGE_KEYS.LAST_SYNC);
+      document.getElementById('kpi-last-sync').textContent = lastSync
+        ? `Last sync: ${new Date(lastSync).toLocaleString()}`
+        : 'Local mode — configure GitHub in Settings';
+
+      const tbody = document.getElementById('recent-docs-body');
+      const recent = docs.slice(0, 10);
+      if (!recent.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding:28px;color:var(--text-muted);">No documents yet. Choose a quick launcher above to create your first TourBuzz document.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = recent.map(d => {
+        const meta = CONFIG.DOC_TYPES[d.type] || { label: d.type };
+        const amt = d.grandTotal !== undefined ? TourBuzzApp.formatMoney(d.grandTotal, d.currency || 'BDT')
+          : (d.amount !== undefined ? TourBuzzApp.formatMoney(d.amount, d.currency || 'BDT') : '—');
+        return `
+          <tr>
+            <td class="mono"><strong>${TourBuzzApp.escapeHtml(d.docNo)}</strong></td>
+            <td>${TourBuzzApp.escapeHtml(meta.label)}</td>
+            <td>${TourBuzzApp.escapeHtml(d.clientName || '—')}</td>
+            <td class="mono">${TourBuzzApp.escapeHtml(TourBuzzApp.formatDate(d.date))}</td>
+            <td class="mono">${TourBuzzApp.escapeHtml(amt)}</td>
+            <td>${statusBadge(d.status)}</td>
+            <td>${d.cloudSynced ? '<span class="badge badge-green">Cloud Synced</span>' : '<span class="badge badge-orange">Local Only</span>'}</td>
+            <td class="text-right">
+              <button type="button" class="btn btn-outline btn-sm" onclick="TourBuzzApp.openForEdit('${TourBuzzApp.escapeHtml(d.docNo)}')">Edit</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    document.getElementById('btn-dash-sync').addEventListener('click', () => TourBuzzApp.syncAll(false));
+    window.addEventListener('tourbuzz:synced', renderDashboard);
+    renderDashboard();
+    if (TourBuzzApp.isSheetsConfigured() || TourBuzzApp.isGitHubConfigured()) TourBuzzApp.syncAll(true);
+  </script>
+</body>
+</html>

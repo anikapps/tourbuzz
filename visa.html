@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visa Processing Checklist — TourBuzz TMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <div class="maker-action-bar">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Visa Processing &amp; Submitted-Documents Checklist Sheet</div>
+        <div class="maker-action-group">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-save-sync">💾 Save &amp; Sync</button>
+          <button type="button" class="btn btn-navy btn-sm" id="btn-print-a4">🖨 Print A4</button>
+          <button type="button" class="btn btn-green btn-sm" id="btn-download-pdf">📄 Download PDF</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-reset-form">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="workspace-split">
+        <div class="form-panel">
+          <div class="form-section">
+            <div class="form-section-title">Applicant &amp; Visa Scope</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Visa File Reference</label>
+                <input type="text" id="vis-no" class="form-control mono">
+              </div>
+              <div class="form-group">
+                <label>Submission Date</label>
+                <input type="date" id="vis-date" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Applicant Full Name *</label>
+                <input type="text" id="vis-name" class="form-control" placeholder="As per passport">
+              </div>
+              <div class="form-group">
+                <label>Passport Number *</label>
+                <input type="text" id="vis-passport" class="form-control mono" style="text-transform:uppercase;" placeholder="e.g. A01234567">
+              </div>
+              <div class="form-group">
+                <label>Nationality</label>
+                <input type="text" id="vis-nationality" class="form-control" value="Bangladeshi">
+              </div>
+              <div class="form-group">
+                <label>Applicant Phone</label>
+                <input type="text" id="vis-phone" class="form-control" placeholder="+880 1XXX-XXXXXX">
+              </div>
+              <div class="form-group">
+                <label>Destination Country *</label>
+                <input type="text" id="vis-dest" class="form-control" placeholder="e.g. Thailand / Schengen / UAE / UK">
+              </div>
+              <div class="form-group">
+                <label>Visa Category</label>
+                <select id="vis-category" class="form-control">
+                  <option value="Tourist">Tourist</option>
+                  <option value="Business">Business</option>
+                  <option value="Medical">Medical</option>
+                  <option value="Student">Student</option>
+                  <option value="Work">Work</option>
+                  <option value="Umrah / Religious">Umrah / Religious</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Entry Type</label>
+                <select id="vis-entry" class="form-control">
+                  <option value="Single Entry">Single Entry</option>
+                  <option value="Double Entry">Double Entry</option>
+                  <option value="Multiple Entry">Multiple Entry</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Duration / Validity</label>
+                <input type="text" id="vis-duration" class="form-control" value="30 Days">
+              </div>
+              <div class="form-group">
+                <label>Processing Status</label>
+                <select id="vis-status" class="form-control">
+                  <option value="PROCESSING">PROCESSING</option>
+                  <option value="SUBMITTED">SUBMITTED</option>
+                  <option value="APPROVED">APPROVED</option>
+                  <option value="PENDING">PENDING</option>
+                  <option value="REJECTED">REJECTED</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Submitted Documents Checklist</div>
+            <div id="vis-checklist-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;"></div>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="vis-custom-item" class="form-control" placeholder="Add custom document (e.g. Birth Certificate, Police Clearance)...">
+              <button type="button" class="btn btn-outline btn-sm" id="btn-add-check">+ Add</button>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Embassy Remarks</div>
+            <div class="form-group full">
+              <textarea id="vis-remarks" class="form-control" rows="3" placeholder="Special notes, appointment date, or missing document follow-ups..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-panel">
+          <div class="preview-scale-wrap" id="a4-preview"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="brand-assets.js"></script>
+  <script src="app.js"></script>
+  <script src="doc-renderers.js"></script>
+  <script src="smart-parser.js"></script>
+  <script src="doc-actions.js"></script>
+  <script>
+    TourBuzzApp.initShell('visa.html', 'Visa Processing & Checklist');
+
+    const DEFAULT_VISA_DOCS = [
+      'Original Passport (Min 6 Months Validity)',
+      'Previous / Old Passport(s)',
+      'Recent White-Background Photos (2–4 Copies)',
+      'Last 6 Months Bank Statement & Solvency',
+      'NOC / Leave Approval Letter (Job Holder)',
+      'Updated Trade License & TIN (Business)',
+      'Visiting Card & Company Pad',
+      'NID / Smart Card Copy',
+      'Marriage Certificate / Nikahnama',
+      'Invitation Letter / Sponsor Documents',
+      'Confirmed Flight Itinerary & Hotel Booking',
+      'Travel Insurance Policy'
+    ];
+
+    const checkWrap = document.getElementById('vis-checklist-wrap');
+    let checklistState = [];
+    let makerCtrl = null;
+
+    function renderChecklistControls() {
+      checkWrap.innerHTML = checklistState.map((item, idx) => `
+        <label style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--border-color);border-radius:6px;cursor:pointer;font-size:12.5px;background:var(--bg-subtle);">
+          <input type="checkbox" data-idx="${idx}" ${item.checked ? 'checked' : ''} style="accent-color:var(--tb-green);width:15px;height:15px;">
+          <span>${TourBuzzApp.escapeHtml(item.label)}</span>
+        </label>
+      `).join('');
+
+      checkWrap.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+          checklistState[parseInt(cb.dataset.idx, 10)].checked = cb.checked;
+          if (makerCtrl) makerCtrl.renderNow();
+        });
+      });
+    }
+
+    document.getElementById('btn-add-check').addEventListener('click', () => {
+      const inp = document.getElementById('vis-custom-item');
+      const val = inp.value.trim();
+      if (!val) return;
+      checklistState.push({ label: val, checked: true });
+      inp.value = '';
+      renderChecklistControls();
+      if (makerCtrl) makerCtrl.renderNow();
+    });
+
+    function collectData() {
+      return {
+        type: 'visa',
+        docNo: document.getElementById('vis-no').value.trim() || TourBuzzApp.generateDocNumber('visa'),
+        date: document.getElementById('vis-date').value,
+        clientName: document.getElementById('vis-name').value.trim(),
+        passportNo: document.getElementById('vis-passport').value.trim().toUpperCase(),
+        nationality: document.getElementById('vis-nationality').value.trim(),
+        clientPhone: document.getElementById('vis-phone').value.trim(),
+        destination: document.getElementById('vis-dest').value.trim(),
+        visaCategory: document.getElementById('vis-category').value,
+        entryType: document.getElementById('vis-entry').value,
+        duration: document.getElementById('vis-duration').value.trim(),
+        status: document.getElementById('vis-status').value,
+        checklist: structuredClone(checklistState),
+        remarks: document.getElementById('vis-remarks').value.trim()
+      };
+    }
+
+    function populateForm(doc) {
+      document.getElementById('vis-no').value = doc.docNo || '';
+      document.getElementById('vis-date').value = doc.date || TourBuzzApp.todayISO();
+      document.getElementById('vis-name').value = doc.clientName || '';
+      document.getElementById('vis-passport').value = doc.passportNo || '';
+      document.getElementById('vis-nationality').value = doc.nationality || 'Bangladeshi';
+      document.getElementById('vis-phone').value = doc.clientPhone || '';
+      document.getElementById('vis-dest').value = doc.destination || '';
+      document.getElementById('vis-category').value = doc.visaCategory || 'Tourist';
+      document.getElementById('vis-entry').value = doc.entryType || 'Single Entry';
+      document.getElementById('vis-duration').value = doc.duration || '30 Days';
+      document.getElementById('vis-status').value = doc.status || 'PROCESSING';
+      document.getElementById('vis-remarks').value = doc.remarks || '';
+      checklistState = Array.isArray(doc.checklist) && doc.checklist.length
+        ? structuredClone(doc.checklist)
+        : DEFAULT_VISA_DOCS.map((label, i) => ({ label, checked: i < 4 }));
+      renderChecklistControls();
+    }
+
+    function resetDefaults() {
+      document.getElementById('vis-no').value = TourBuzzApp.generateDocNumber('visa');
+      document.getElementById('vis-date').value = TourBuzzApp.todayISO();
+      document.getElementById('vis-name').value = '';
+      document.getElementById('vis-passport').value = '';
+      document.getElementById('vis-nationality').value = 'Bangladeshi';
+      document.getElementById('vis-phone').value = '';
+      document.getElementById('vis-dest').value = '';
+      document.getElementById('vis-category').value = 'Tourist';
+      document.getElementById('vis-entry').value = 'Single Entry';
+      document.getElementById('vis-duration').value = '30 Days';
+      document.getElementById('vis-status').value = 'PROCESSING';
+      document.getElementById('vis-remarks').value = '';
+      checklistState = DEFAULT_VISA_DOCS.map((label, i) => ({ label, checked: i === 0 || i === 2 }));
+      renderChecklistControls();
+    }
+
+    makerCtrl = TourBuzzDocActions.bindMaker({
+      type: 'visa',
+      previewSelector: '#a4-preview',
+      collectData,
+      populateForm,
+      resetDefaults
+    });
+  </script>
+</body>
+</html>

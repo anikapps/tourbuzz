@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud &amp; Team Settings — TourBuzz TMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <main class="page-body" style="max-width:960px;">
+        <!-- Staff Identity & Zero-Collision Desk Code -->
+        <section class="card" style="margin-bottom:20px;border-left:4px solid var(--tb-orange);">
+          <div class="card-header">
+            <h2 class="card-title">👤 Staff Profile &amp; Desk Code (Zero-Collision Numbering)</h2>
+            <span class="badge badge-orange" id="desk-preview-badge">TB-INV-YYYYMM-0001</span>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-secondary);margin-top:0;">
+            Set each staff member's name and 2–3 letter Desk Code (e.g. <span class="mono">AN</span>, <span class="mono">UT</span>, <span class="mono">PL</span>) so simultaneous documents on different PCs never collide and every edit is attributed.
+          </p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Staff Full Name</label>
+              <input type="text" id="set-staff-name" class="form-control" placeholder="e.g. Anik / Utsha / Pial">
+            </div>
+            <div class="form-group">
+              <label>Desk Code (2–3 Letters)</label>
+              <input type="text" id="set-desk-code" class="form-control mono" maxlength="3" placeholder="e.g. AN" style="text-transform:uppercase;">
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-save-staff">💾 Save Staff Profile</button>
+          </div>
+        </section>
+
+        <!-- 10-Second Team Onboarding Setup Code -->
+        <section class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <h2 class="card-title">🚀 10-Second Team PC Onboarding (Setup Code)</h2>
+            <span class="badge badge-navy">Passphrase Protected</span>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-secondary);margin-top:0;">
+            Export your GitHub Sync, Google Sheets URL, and Bank Options into one encrypted setup code to paste onto a teammate's computer.
+          </p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Team Passphrase</label>
+              <input type="password" id="team-pass" class="form-control mono" placeholder="Enter shared team passphrase">
+            </div>
+            <div class="form-group" style="justify-content:flex-end;flex-direction:row;align-items:flex-end;gap:8px;">
+              <button type="button" class="btn btn-navy btn-sm" id="btn-export-team">🔑 Generate &amp; Copy Code</button>
+              <button type="button" class="btn btn-green btn-sm" id="btn-import-team">📥 Import Setup Code</button>
+            </div>
+            <div class="form-group full">
+              <label>Team Setup Code (<span class="mono">TB-TEAM-...</span>)</label>
+              <textarea id="team-code-box" class="form-control mono" rows="2" placeholder="Generated code appears here — or paste a code from a teammate and click Import"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- Layer 2: GitHub Contents API v3 -->
+        <section class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <h2 class="card-title">☁️ Layer 2 — GitHub Cloud Sync (Contents API v3)</h2>
+            <span class="badge badge-navy">Two-Way Multi-PC Sync</span>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-secondary);margin-top:0;">
+            Connect a private or public GitHub repository so all TourBuzz staff PCs stay synchronized via <span class="mono">Documents/&lt;Type&gt;/&lt;YYYY&gt;/&lt;MM&gt;/&lt;DocNo&gt;.json</span> with SHA-aware conflict checks and automatic offline retry.
+          </p>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>GitHub Username / Organization</label>
+              <input type="text" id="set-gh-owner" class="form-control mono" placeholder="e.g. tourbuzz-bd">
+            </div>
+            <div class="form-group">
+              <label>Repository Name</label>
+              <input type="text" id="set-gh-repo" class="form-control mono" placeholder="e.g. tourbuzz-tms-vault">
+            </div>
+            <div class="form-group">
+              <label>Branch</label>
+              <input type="text" id="set-gh-branch" class="form-control mono" value="main">
+            </div>
+            <div class="form-group">
+              <label>GitHub Personal Access Token (PAT — contents:write)</label>
+              <input type="password" id="set-gh-token" class="form-control mono" placeholder="ghp_... or github_pat_...">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-save-settings">💾 Save Cloud Settings</button>
+            <button type="button" class="btn btn-navy btn-sm" id="btn-test-gh">🔌 Test GitHub Connection</button>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-pull-now">🔄 Pull All Cloud Docs</button>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-flush-outbox">📤 Push Offline Queue (<span id="outbox-count">0</span>)</button>
+          </div>
+          <div id="gh-test-result" style="margin-top:10px;font-size:12.5px;"></div>
+        </section>
+
+        <!-- Layer 3: Google Sheets Webhook -->
+        <section class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <h2 class="card-title">📊 Layer 3 — Google Sheets Webhook (Apps Script)</h2>
+            <span class="badge badge-green">Auto-Formatted Upsert</span>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-secondary);margin-top:0;">
+            Deploy <span class="mono">google-apps-script.gs</span> as a Google Apps Script Web App (Execute as: Me, Access: Anyone) and paste the Web App URL below.
+          </p>
+          <div class="form-group full">
+            <label>Google Apps Script Web App URL</label>
+            <input type="url" id="set-sheets-url" class="form-control mono" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-save-sheets">💾 Save Sheets URL</button>
+            <button type="button" class="btn btn-green btn-sm" id="btn-test-sheets">🧪 Test Google Sheets Webhook</button>
+            <button type="button" class="btn btn-navy btn-sm" id="btn-pull-sheets">⬇ Pull Rows From Google Sheets</button>
+          </div>
+          <div id="sheets-test-result" style="margin-top:10px;font-size:12.5px;"></div>
+        </section>
+
+        <!-- Dynamic Corporate Bank & Payment Options -->
+        <section class="card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <h2 class="card-title">🏦 Corporate Bank &amp; Payment Options (Defaults for Invoices)</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-outline btn-sm" id="btn-reset-banks">↺ Reset Defaults</button>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-bank">+ Add Bank / Payment Option</button>
+            </div>
+          </div>
+          <div id="set-banks-list"></div>
+          <div style="margin-top:14px;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-save-bank">💾 Save All Bank &amp; Payment Options</button>
+          </div>
+        </section>
+
+        <!-- Shared Client Directory & Local Cache Maintenance -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">👥 Shared Client Directory &amp; Cache Maintenance</h2>
+            <span class="badge badge-navy"><span id="client-dir-count">0</span> Saved Clients</span>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-outline btn-sm" id="btn-sync-clients">☁ Sync Client Directory</button>
+            <button type="button" class="btn btn-navy btn-sm" id="btn-set-backup">⬇ Download Full JSON Backup</button>
+            <button type="button" class="btn btn-danger btn-sm" id="btn-clear-local">🗑 Clear Local Cache Only</button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    TourBuzzApp.initShell('settings.html', 'Cloud Sync & Team Settings');
+    const banksWrap = document.getElementById('set-banks-list');
+
+    function updateDeskBadge() {
+      const code = document.getElementById('set-desk-code').value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+      const ym = new Date().toISOString().slice(0, 7).replace('-', '');
+      document.getElementById('desk-preview-badge').textContent = code ? `TB-INV-${ym}-${code}-0001` : `TB-INV-${ym}-0001`;
+    }
+
+    function addBankRow(b = {}) {
+      const card = document.createElement('div');
+      card.className = 'repeater-card';
+      card.innerHTML = `
+        <div class="repeater-header">
+          <span>Bank / Payment Account</span>
+          <button type="button" class="btn btn-danger btn-sm btn-del-bank">Remove</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Bank / Payment Method Name</label>
+            <input type="text" class="form-control b-name" placeholder="e.g. BRAC Bank PLC / bKash Merchant" value="${TourBuzzApp.escapeHtml(b.bankName || '')}">
+          </div>
+          <div class="form-group">
+            <label>Account Name</label>
+            <input type="text" class="form-control b-accname" placeholder="TourBuzz Travel Services Ltd." value="${TourBuzzApp.escapeHtml(b.accountName || '')}">
+          </div>
+          <div class="form-group">
+            <label>Account / Merchant Number</label>
+            <input type="text" class="form-control mono b-accno" placeholder="Account or Mobile Number" value="${TourBuzzApp.escapeHtml(b.accountNumber || '')}">
+          </div>
+          <div class="form-group">
+            <label>Branch / Payment Type</label>
+            <input type="text" class="form-control b-branch" placeholder="e.g. Mohammadpur Branch, Dhaka" value="${TourBuzzApp.escapeHtml(b.branch || '')}">
+          </div>
+          <div class="form-group full">
+            <label>Routing No / Extra Note (Optional)</label>
+            <input type="text" class="form-control mono b-routing" placeholder="e.g. 060263284 or Reference: Invoice No" value="${TourBuzzApp.escapeHtml(b.routingNo || '')}">
+          </div>
+        </div>
+      `;
+      card.querySelector('.btn-del-bank').addEventListener('click', () => card.remove());
+      banksWrap.appendChild(card);
+    }
+
+    document.getElementById('btn-add-bank').addEventListener('click', () => addBankRow({ accountName: CONFIG.COMPANY.NAME }));
+    document.getElementById('btn-reset-banks').addEventListener('click', () => {
+      banksWrap.innerHTML = '';
+      DEFAULT_CONFIG.BANK_DETAILS.forEach(addBankRow);
+      persistSettings();
+    });
+    document.getElementById('set-desk-code').addEventListener('input', updateDeskBadge);
+
+    function loadFields() {
+      document.getElementById('set-staff-name').value = (CONFIG.STAFF && CONFIG.STAFF.NAME) || '';
+      document.getElementById('set-desk-code').value = (CONFIG.STAFF && CONFIG.STAFF.DESK_CODE) || '';
+      document.getElementById('set-gh-owner').value = CONFIG.GITHUB_OWNER || '';
+      document.getElementById('set-gh-repo').value = CONFIG.GITHUB_REPO || '';
+      document.getElementById('set-gh-branch').value = CONFIG.GITHUB_BRANCH || 'main';
+      document.getElementById('set-gh-token').value = CONFIG.GITHUB_TOKEN || '';
+      document.getElementById('set-sheets-url').value = CONFIG.APPS_SCRIPT_URL || '';
+      document.getElementById('outbox-count').textContent = TourBuzzApp.getOutbox().length;
+      document.getElementById('client-dir-count').textContent = TourBuzzApp.getClients().length;
+      updateDeskBadge();
+
+      banksWrap.innerHTML = '';
+      const banks = Array.isArray(CONFIG.BANK_DETAILS) && CONFIG.BANK_DETAILS.length ? CONFIG.BANK_DETAILS : [{}];
+      banks.forEach(addBankRow);
+    }
+
+    function collectBanks() {
+      return Array.from(banksWrap.querySelectorAll('.repeater-card')).map(c => ({
+        bankName: c.querySelector('.b-name').value.trim(),
+        accountName: c.querySelector('.b-accname').value.trim(),
+        accountNumber: c.querySelector('.b-accno').value.trim(),
+        branch: c.querySelector('.b-branch').value.trim(),
+        routingNo: c.querySelector('.b-routing').value.trim()
+      })).filter(b => b.bankName || b.accountNumber);
+    }
+
+    function persistSettings() {
+      const payload = {
+        STAFF: {
+          NAME: document.getElementById('set-staff-name').value.trim(),
+          DESK_CODE: document.getElementById('set-desk-code').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3)
+        },
+        GITHUB_OWNER: document.getElementById('set-gh-owner').value.trim(),
+        GITHUB_REPO: document.getElementById('set-gh-repo').value.trim(),
+        GITHUB_BRANCH: document.getElementById('set-gh-branch').value.trim() || 'main',
+        GITHUB_TOKEN: document.getElementById('set-gh-token').value.trim(),
+        APPS_SCRIPT_URL: document.getElementById('set-sheets-url').value.trim(),
+        BANK_DETAILS: collectBanks()
+      };
+      localStorage.setItem(CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify(payload));
+      window.reloadTourBuzzConfig();
+      TourBuzzApp.refreshSyncPillDefault();
+      TourBuzzApp.toast('Team, Cloud & Bank settings saved.', 'success');
+    }
+
+    document.getElementById('btn-save-staff').addEventListener('click', persistSettings);
+    document.getElementById('btn-save-settings').addEventListener('click', persistSettings);
+    document.getElementById('btn-save-bank').addEventListener('click', persistSettings);
+    document.getElementById('btn-save-sheets').addEventListener('click', persistSettings);
+    document.getElementById('btn-pull-sheets').addEventListener('click', async () => { persistSettings(); await TourBuzzApp.pullFromGoogleSheets(false); });
+
+    document.getElementById('btn-export-team').addEventListener('click', () => {
+      persistSettings();
+      const pass = document.getElementById('team-pass').value.trim();
+      if (!pass) return TourBuzzApp.toast('Enter a team passphrase first.', 'warn');
+      const code = TourBuzzApp.exportTeamSetupCode(pass);
+      document.getElementById('team-code-box').value = code;
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code).catch(() => {});
+      TourBuzzApp.toast('Team setup code generated & copied to clipboard!', 'success');
+    });
+
+    document.getElementById('btn-import-team').addEventListener('click', () => {
+      const pass = document.getElementById('team-pass').value.trim();
+      const code = document.getElementById('team-code-box').value.trim();
+      if (!pass || !code) return TourBuzzApp.toast('Enter both passphrase and setup code.', 'warn');
+      try {
+        TourBuzzApp.importTeamSetupCode(code, pass);
+        loadFields();
+        TourBuzzApp.refreshSyncPillDefault();
+        TourBuzzApp.toast('Team Cloud & Bank settings imported! Set your Staff Name & Desk Code above.', 'success');
+      } catch (err) {
+        TourBuzzApp.toast(err.message, 'error');
+      }
+    });
+
+    document.getElementById('btn-test-gh').addEventListener('click', async () => {
+      persistSettings();
+      const out = document.getElementById('gh-test-result');
+      out.textContent = 'Testing GitHub API connection...';
+      try {
+        const repo = await TourBuzzApp.testGitHubConnection();
+        out.innerHTML = `<span class="badge badge-green">Connected</span> Repo: <strong>${TourBuzzApp.escapeHtml(repo.full_name)}</strong> (${repo.private ? 'Private' : 'Public'}) · Default branch: <span class="mono">${TourBuzzApp.escapeHtml(repo.default_branch)}</span>`;
+      } catch (err) {
+        out.innerHTML = `<span class="badge badge-red">Failed</span> ${TourBuzzApp.escapeHtml(err.message)}`;
+      }
+    });
+
+    document.getElementById('btn-pull-now').addEventListener('click', async () => {
+      persistSettings();
+      await TourBuzzApp.pullFromGitHub(false);
+      loadFields();
+    });
+
+    document.getElementById('btn-flush-outbox').addEventListener('click', async () => {
+      const pushed = await TourBuzzApp.flushOutbox(false);
+      document.getElementById('outbox-count').textContent = TourBuzzApp.getOutbox().length;
+      if (!pushed) TourBuzzApp.toast('No pending offline documents to push.', 'info');
+    });
+
+    document.getElementById('btn-sync-clients').addEventListener('click', async () => {
+      await TourBuzzApp.syncClientsToGitHub();
+      document.getElementById('client-dir-count').textContent = TourBuzzApp.getClients().length;
+      TourBuzzApp.toast('Shared Client Directory synced with GitHub.', 'success');
+    });
+
+    document.getElementById('btn-test-sheets').addEventListener('click', async () => {
+      persistSettings();
+      const out = document.getElementById('sheets-test-result');
+      out.textContent = 'Sending test ping to Google Apps Script...';
+      try {
+        await TourBuzzApp.testSheetsWebhook();
+        out.innerHTML = `<span class="badge badge-green">Dispatched</span> Test payload sent to Google Sheets! Check the <strong>All Activity Log</strong> tab.`;
+      } catch (err) {
+        out.innerHTML = `<span class="badge badge-red">Error</span> ${TourBuzzApp.escapeHtml(err.message)}`;
+      }
+    });
+
+    document.getElementById('btn-set-backup').addEventListener('click', () => TourBuzzApp.exportBackupJSON());
+    document.getElementById('btn-clear-local').addEventListener('click', () => {
+      if (!confirm('Clear all locally cached documents? Your GitHub cloud vault and Google Sheets will NOT be deleted.')) return;
+      localStorage.removeItem(CONFIG.STORAGE_KEYS.DOCS);
+      TourBuzzApp.toast('Local document cache cleared.', 'info');
+    });
+
+    loadFields();
+  </script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hotel Voucher Maker — TourBuzz TMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <div class="maker-action-bar">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Multi-Hotel &amp; Land Service Voucher</div>
+        <div class="maker-action-group">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-save-sync">💾 Save &amp; Sync</button>
+          <button type="button" class="btn btn-navy btn-sm" id="btn-print-a4">🖨 Print A4</button>
+          <button type="button" class="btn btn-green btn-sm" id="btn-download-pdf">📄 Download PDF</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-reset-form">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="workspace-split">
+        <div class="form-panel">
+          <div class="form-section">
+            <div class="form-section-title">Voucher &amp; Guest Details</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Voucher Number</label>
+                <input type="text" id="vch-no" class="form-control mono">
+              </div>
+              <div class="form-group">
+                <label>Issue Date</label>
+                <input type="date" id="vch-date" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Lead Guest Name *</label>
+                <input type="text" id="vch-guest" class="form-control" placeholder="Mr. / Ms. Full Name">
+              </div>
+              <div class="form-group">
+                <label>Guest Contact Phone</label>
+                <input type="text" id="vch-phone" class="form-control" placeholder="+880 1XXX-XXXXXX">
+              </div>
+              <div class="form-group full">
+                <label>Accompanying Guests</label>
+                <input type="text" id="vch-accompanying" class="form-control" placeholder="Comma-separated guest names">
+              </div>
+              <div class="form-group">
+                <label>Booking Reference</label>
+                <input type="text" id="vch-ref" class="form-control mono" placeholder="Supplier / TourBuzz Ref">
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select id="vch-status" class="form-control">
+                  <option value="CONFIRMED">CONFIRMED</option>
+                  <option value="PENDING">PENDING</option>
+                  <option value="CANCELLED">CANCELLED</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-grid-3" style="margin-top:12px;">
+              <div class="form-group">
+                <label>Adults</label>
+                <input type="number" min="1" id="vch-adults" class="form-control" value="2">
+              </div>
+              <div class="form-group">
+                <label>Children</label>
+                <input type="number" min="0" id="vch-children" class="form-control" value="0">
+              </div>
+              <div class="form-group">
+                <label>Infants</label>
+                <input type="number" min="0" id="vch-infants" class="form-control" value="0">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">
+              <span>Hotels (Multi-Hotel Support)</span>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-hotel">+ Add Hotel</button>
+            </div>
+            <div id="vch-hotels-list"></div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Land Services &amp; Remarks</div>
+            <div class="form-group full" style="margin-bottom:10px;">
+              <label>Transfers &amp; Land Services</label>
+              <textarea id="vch-land" class="form-control" placeholder="e.g. Private Airport Pick-up & Drop-off, Half-Day City Tour"></textarea>
+            </div>
+            <div class="form-group full">
+              <label>Special Requests / Check-In Remarks</label>
+              <textarea id="vch-remarks" class="form-control" placeholder="High floor, king bed, early check-in subject to availability..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="preview-panel">
+          <div class="preview-scale-wrap" id="a4-preview"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="brand-assets.js"></script>
+  <script src="app.js"></script>
+  <script src="doc-renderers.js"></script>
+  <script src="smart-parser.js"></script>
+  <script src="doc-actions.js"></script>
+  <script>
+    TourBuzzApp.initShell('voucher.html', 'Hotel & Land Service Voucher');
+    const hotelsWrap = document.getElementById('vch-hotels-list');
+    let makerCtrl = null;
+
+    function addHotelCard(h = {}) {
+      const card = document.createElement('div');
+      card.className = 'repeater-card';
+      card.innerHTML = `
+        <div class="repeater-header">
+          <span>Hotel Stay</span>
+          <button type="button" class="btn btn-danger btn-sm btn-remove-hotel">Remove</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Hotel Name *</label>
+            <input type="text" class="form-control h-name" placeholder="e.g. Amari Watergate Bangkok" value="${TourBuzzApp.escapeHtml(h.hotelName || '')}">
+          </div>
+          <div class="form-group">
+            <label>Hotel Address</label>
+            <input type="text" class="form-control h-addr" placeholder="Street, City, Country" value="${TourBuzzApp.escapeHtml(h.hotelAddress || '')}">
+          </div>
+          <div class="form-group">
+            <label>Hotel Phone</label>
+            <input type="text" class="form-control h-phone" placeholder="+66 ..." value="${TourBuzzApp.escapeHtml(h.hotelPhone || '')}">
+          </div>
+          <div class="form-group">
+            <label>Check-In Date</label>
+            <input type="date" class="form-control h-in" value="${TourBuzzApp.escapeHtml(h.checkIn || TourBuzzApp.todayISO())}">
+          </div>
+          <div class="form-group">
+            <label>Check-Out Date</label>
+            <input type="date" class="form-control h-out" value="${TourBuzzApp.escapeHtml(h.checkOut || '')}">
+          </div>
+          <div class="form-group">
+            <label>Room Type</label>
+            <input type="text" class="form-control h-room" placeholder="Deluxe Double Room" value="${TourBuzzApp.escapeHtml(h.roomType || 'Deluxe Room')}">
+          </div>
+          <div class="form-group">
+            <label>Rooms Count</label>
+            <input type="number" min="1" class="form-control h-rooms" value="${h.rooms ?? 1}">
+          </div>
+          <div class="form-group">
+            <label>Meal Plan</label>
+            <select class="form-control h-meal">
+              <option value="RO (Room Only)">RO — Room Only</option>
+              <option value="BB (Bed & Breakfast)">BB — Bed &amp; Breakfast</option>
+              <option value="HB (Half Board)">HB — Half Board</option>
+              <option value="FB (Full Board)">FB — Full Board</option>
+              <option value="AI (All Inclusive)">AI — All Inclusive</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Hotel Confirmation #</label>
+            <input type="text" class="form-control mono h-conf" placeholder="e.g. CNF-884920" value="${TourBuzzApp.escapeHtml(h.confirmationNo || '')}">
+          </div>
+        </div>
+      `;
+      if (h.mealPlan) card.querySelector('.h-meal').value = h.mealPlan;
+      else card.querySelector('.h-meal').value = 'BB (Bed & Breakfast)';
+
+      card.querySelector('.btn-remove-hotel').addEventListener('click', () => {
+        card.remove();
+        if (makerCtrl) makerCtrl.renderNow();
+      });
+      hotelsWrap.appendChild(card);
+    }
+
+    document.getElementById('btn-add-hotel').addEventListener('click', () => {
+      addHotelCard();
+      if (makerCtrl) makerCtrl.renderNow();
+    });
+
+    function collectData() {
+      const hotels = Array.from(hotelsWrap.querySelectorAll('.repeater-card')).map(c => {
+        const checkIn = c.querySelector('.h-in').value;
+        const checkOut = c.querySelector('.h-out').value;
+        return {
+          hotelName: c.querySelector('.h-name').value.trim(),
+          hotelAddress: c.querySelector('.h-addr').value.trim(),
+          hotelPhone: c.querySelector('.h-phone').value.trim(),
+          checkIn,
+          checkOut,
+          nights: TourBuzzApp.calcNights(checkIn, checkOut),
+          roomType: c.querySelector('.h-room').value.trim(),
+          rooms: TourBuzzApp.toNumber(c.querySelector('.h-rooms').value) || 1,
+          mealPlan: c.querySelector('.h-meal').value,
+          confirmationNo: c.querySelector('.h-conf').value.trim()
+        };
+      });
+
+      return {
+        type: 'voucher',
+        docNo: document.getElementById('vch-no').value.trim() || TourBuzzApp.generateDocNumber('voucher'),
+        date: document.getElementById('vch-date').value,
+        clientName: document.getElementById('vch-guest').value.trim(),
+        guestPhone: document.getElementById('vch-phone').value.trim(),
+        accompanyingGuests: document.getElementById('vch-accompanying').value.trim(),
+        bookingRef: document.getElementById('vch-ref').value.trim(),
+        status: document.getElementById('vch-status').value,
+        adults: TourBuzzApp.toNumber(document.getElementById('vch-adults').value),
+        children: TourBuzzApp.toNumber(document.getElementById('vch-children').value),
+        infants: TourBuzzApp.toNumber(document.getElementById('vch-infants').value),
+        hotels,
+        landServices: document.getElementById('vch-land').value.trim(),
+        remarks: document.getElementById('vch-remarks').value.trim()
+      };
+    }
+
+    function populateForm(doc) {
+      document.getElementById('vch-no').value = doc.docNo || '';
+      document.getElementById('vch-date').value = doc.date || TourBuzzApp.todayISO();
+      document.getElementById('vch-guest').value = doc.clientName || '';
+      document.getElementById('vch-phone').value = doc.guestPhone || '';
+      document.getElementById('vch-accompanying').value = doc.accompanyingGuests || '';
+      document.getElementById('vch-ref').value = doc.bookingRef || '';
+      document.getElementById('vch-status').value = doc.status || 'CONFIRMED';
+      document.getElementById('vch-adults').value = doc.adults ?? 2;
+      document.getElementById('vch-children').value = doc.children ?? 0;
+      document.getElementById('vch-infants').value = doc.infants ?? 0;
+      document.getElementById('vch-land').value = doc.landServices || '';
+      document.getElementById('vch-remarks').value = doc.remarks || '';
+      hotelsWrap.innerHTML = '';
+      (doc.hotels && doc.hotels.length ? doc.hotels : [{}]).forEach(addHotelCard);
+    }
+
+    function resetDefaults() {
+      const today = TourBuzzApp.todayISO();
+      const plus3 = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+      document.getElementById('vch-no').value = TourBuzzApp.generateDocNumber('voucher');
+      document.getElementById('vch-date').value = today;
+      document.getElementById('vch-guest').value = '';
+      document.getElementById('vch-phone').value = '';
+      document.getElementById('vch-accompanying').value = '';
+      document.getElementById('vch-ref').value = '';
+      document.getElementById('vch-status').value = 'CONFIRMED';
+      document.getElementById('vch-adults').value = 2;
+      document.getElementById('vch-children').value = 0;
+      document.getElementById('vch-infants').value = 0;
+      document.getElementById('vch-land').value = '';
+      document.getElementById('vch-remarks').value = '';
+      hotelsWrap.innerHTML = '';
+      addHotelCard({ checkIn: today, checkOut: plus3, roomType: 'Deluxe Room', rooms: 1, mealPlan: 'BB (Bed & Breakfast)' });
+    }
+
+    makerCtrl = TourBuzzDocActions.bindMaker({
+      type: 'voucher',
+      previewSelector: '#a4-preview',
+      collectData,
+      populateForm,
+      resetDefaults
+    });
+  </script>
+</body>
+</html>

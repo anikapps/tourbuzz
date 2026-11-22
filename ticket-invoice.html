@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Air Ticket Invoice — TourBuzz TMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <div class="maker-action-bar">
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Air Ticket Billing &amp; Fare Breakdown Invoice</div>
+        <div class="maker-action-group">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-save-sync">💾 Save &amp; Sync</button>
+          <button type="button" class="btn btn-navy btn-sm" id="btn-print-a4">🖨 Print A4</button>
+          <button type="button" class="btn btn-green btn-sm" id="btn-download-pdf">📄 Download PDF</button>
+          <button type="button" class="btn btn-outline btn-sm" id="btn-reset-form">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="workspace-split">
+        <div class="form-panel">
+          <!-- One-Click Import from Saved Ticket -->
+          <div class="form-section" style="border-left:4px solid var(--tb-orange);">
+            <div class="form-section-title">⚡ One-Click Import From Saved E-Ticket</div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select id="tiv-ticket-picker" class="form-control">
+                <option value="">— Select a Saved Airline E-Ticket to Auto-Fill —</option>
+              </select>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-import-ticket">Import</button>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Invoice &amp; Flight Details</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Ticket Invoice Number</label>
+                <input type="text" id="tiv-no" class="form-control mono">
+              </div>
+              <div class="form-group">
+                <label>Currency</label>
+                <select id="tiv-currency" class="form-control"></select>
+              </div>
+              <div class="form-group">
+                <label>Invoice Date</label>
+                <input type="date" id="tiv-date" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Travel Date</label>
+                <input type="date" id="tiv-travel-date" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>PNR</label>
+                <input type="text" id="tiv-pnr" class="form-control mono" style="text-transform:uppercase;" placeholder="e.g. X7K9PQ">
+              </div>
+              <div class="form-group">
+                <label>Airline</label>
+                <input type="text" id="tiv-airline" class="form-control" placeholder="e.g. Biman Bangladesh Airlines (BG)">
+              </div>
+              <div class="form-group full">
+                <label>Sector / Routing</label>
+                <input type="text" id="tiv-sector" class="form-control mono" placeholder="e.g. DAC - DXB - DAC">
+              </div>
+              <div class="form-group full">
+                <label>Passenger Name(s) &amp; E-Ticket Number(s)</label>
+                <textarea id="tiv-pax-list" class="form-control" rows="3" placeholder="1. RAHMAN/MD ANIK MR (ADT) — 997-2410987654"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Billed To</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Client / Passenger Name *</label>
+                <input type="text" id="tiv-client" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Company / Corporate</label>
+                <input type="text" id="tiv-company" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="tiv-phone" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="tiv-email" class="form-control">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Fare Breakdown &amp; Settlement</div>
+            <div class="form-grid-3">
+              <div class="form-group">
+                <label>Total Fare (inc. tax)</label>
+                <input type="number" step="0.01" min="0" id="tiv-total-fare" class="form-control mono" value="0">
+              </div>
+              <div class="form-group">
+                <label>AIT / VAT</label>
+                <input type="number" step="0.01" min="0" id="tiv-ait" class="form-control mono" value="0">
+              </div>
+              <div class="form-group">
+                <label>Agency Service Charge</label>
+                <input type="number" step="0.01" min="0" id="tiv-service" class="form-control mono" value="0">
+              </div>
+              <div class="form-group">
+                <label>Discount</label>
+                <input type="number" step="0.01" min="0" id="tiv-discount" class="form-control mono" value="0">
+              </div>
+              <div class="form-group">
+                <label>Paid Amount</label>
+                <input type="number" step="0.01" min="0" id="tiv-paid" class="form-control mono" value="0">
+              </div>
+            </div>
+            <div class="form-group full" style="margin-top:10px;">
+              <label>Notes / Fare Rules (Shown below Bank Details)</label>
+              <textarea id="tiv-notes" class="form-control" placeholder="Thank you for choosing TourBuzz Travel Services Ltd."></textarea>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">
+              <span>Bank &amp; Payment Options (Editable)</span>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-tiv-bank">+ Add Bank / Option</button>
+            </div>
+            <div id="tiv-banks-list"></div>
+          </div>
+        </div>
+
+        <div class="preview-panel">
+          <div class="preview-scale-wrap" id="a4-preview"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="brand-assets.js"></script>
+  <script src="app.js"></script>
+  <script src="doc-renderers.js"></script>
+  <script src="aviation-data.js"></script>
+  <script src="smart-parser.js"></script>
+  <script src="doc-actions.js"></script>
+  <script>
+    TourBuzzApp.initShell('ticket-invoice.html', 'Air Ticket Invoice');
+
+    const curSelect = document.getElementById('tiv-currency');
+    curSelect.innerHTML = CONFIG.CURRENCIES.map(c => `<option value="${c.code}">${c.code} — ${c.name}</option>`).join('');
+
+    const ticketPicker = document.getElementById('tiv-ticket-picker');
+    const savedTickets = TourBuzzApp.getAllDocs().filter(d => d.type === 'ticket');
+    savedTickets.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.docNo;
+      const route = (t.segments || []).map(s => `${s.originIata}-${s.destIata}`).join(' / ');
+      opt.textContent = `${t.docNo} | PNR: ${t.pnr || '—'} | ${t.clientName || 'Pax'} (${route})`;
+      ticketPicker.appendChild(opt);
+    });
+
+    const tivBanksWrap = document.getElementById('tiv-banks-list');
+    let makerCtrl = null;
+
+    function addTivBankRow(b = {}) {
+      const card = document.createElement('div');
+      card.className = 'repeater-card';
+      card.innerHTML = `
+        <div class="repeater-header">
+          <span>Bank / Payment Option</span>
+          <button type="button" class="btn btn-danger btn-sm btn-remove-bank">Remove</button>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Bank / Payment Method</label>
+            <input type="text" class="form-control tb-name" value="${TourBuzzApp.escapeHtml(b.bankName || '')}" placeholder="e.g. BRAC Bank PLC / bKash">
+          </div>
+          <div class="form-group">
+            <label>Account Name</label>
+            <input type="text" class="form-control tb-accname" value="${TourBuzzApp.escapeHtml(b.accountName || '')}">
+          </div>
+          <div class="form-group">
+            <label>Account / Mobile Number</label>
+            <input type="text" class="form-control mono tb-accno" value="${TourBuzzApp.escapeHtml(b.accountNumber || '')}">
+          </div>
+          <div class="form-group">
+            <label>Branch / Type</label>
+            <input type="text" class="form-control tb-branch" value="${TourBuzzApp.escapeHtml(b.branch || '')}">
+          </div>
+          <div class="form-group full">
+            <label>Routing / Reference Note</label>
+            <input type="text" class="form-control mono tb-routing" value="${TourBuzzApp.escapeHtml(b.routingNo || '')}">
+          </div>
+        </div>
+      `;
+      card.querySelector('.btn-remove-bank').addEventListener('click', () => {
+        card.remove();
+        if (makerCtrl) makerCtrl.renderNow();
+      });
+      tivBanksWrap.appendChild(card);
+    }
+
+    document.getElementById('btn-add-tiv-bank').addEventListener('click', () => {
+      addTivBankRow({ accountName: CONFIG.COMPANY.NAME });
+      if (makerCtrl) makerCtrl.renderNow();
+    });
+
+    document.getElementById('btn-import-ticket').addEventListener('click', () => {
+      const tkt = savedTickets.find(t => t.docNo === ticketPicker.value);
+      if (!tkt) {
+        TourBuzzApp.toast('Select a saved e-ticket first.', 'warn');
+        return;
+      }
+      document.getElementById('tiv-pnr').value = tkt.pnr || '';
+      document.getElementById('tiv-client').value = tkt.clientName || '';
+      const segs = tkt.segments || [];
+      if (segs.length) {
+        document.getElementById('tiv-airline').value = `${segs[0].airlineName || ''} (${segs[0].airlineIata || ''})`.trim();
+        document.getElementById('tiv-sector').value = segs.map(s => `${s.originIata}-${s.destIata}`).join(' / ');
+        document.getElementById('tiv-travel-date').value = segs[0].depDate || TourBuzzApp.todayISO();
+      }
+      const paxLines = (tkt.passengers || []).map((p, idx) => `${idx + 1}. ${p.name || 'PASSENGER'} (${p.type || 'ADT'}) — E-Ticket: ${p.ticketNo || 'TBA'}`);
+      document.getElementById('tiv-pax-list').value = paxLines.join('\n');
+      if (makerCtrl) makerCtrl.renderNow();
+      TourBuzzApp.toast(`Imported PNR ${tkt.pnr} from ${tkt.docNo}.`, 'success');
+    });
+
+    function collectData() {
+      const totalFare = TourBuzzApp.toNumber(document.getElementById('tiv-total-fare').value);
+      const baseFare = totalFare;
+      const taxes = 0;
+      const aitVat = TourBuzzApp.toNumber(document.getElementById('tiv-ait').value);
+      const serviceCharge = TourBuzzApp.toNumber(document.getElementById('tiv-service').value);
+      const discount = TourBuzzApp.toNumber(document.getElementById('tiv-discount').value);
+      const grandTotal = Math.max(0, totalFare + aitVat + serviceCharge - discount);
+      const paidAmount = TourBuzzApp.toNumber(document.getElementById('tiv-paid').value);
+      const dueAmount = Math.max(0, grandTotal - paidAmount);
+      const status = dueAmount <= 0.005 && grandTotal > 0 ? 'PAID' : (paidAmount > 0 ? 'PARTIAL' : 'UNPAID');
+
+      return {
+        type: 'ticket-invoice',
+        docNo: document.getElementById('tiv-no').value.trim() || TourBuzzApp.generateDocNumber('ticket-invoice'),
+        date: document.getElementById('tiv-date').value,
+        travelDate: document.getElementById('tiv-travel-date').value,
+        currency: curSelect.value,
+        pnr: document.getElementById('tiv-pnr').value.trim().toUpperCase(),
+        airline: document.getElementById('tiv-airline').value.trim(),
+        sector: document.getElementById('tiv-sector').value.trim().toUpperCase(),
+        passengerList: document.getElementById('tiv-pax-list').value.trim(),
+        clientName: document.getElementById('tiv-client').value.trim(),
+        clientCompany: document.getElementById('tiv-company').value.trim(),
+        clientPhone: document.getElementById('tiv-phone').value.trim(),
+        clientEmail: document.getElementById('tiv-email').value.trim(),
+        totalFare,
+        baseFare,
+        taxes,
+        aitVat,
+        serviceCharge,
+        discount,
+        grandTotal,
+        paidAmount,
+        dueAmount,
+        status,
+        notes: document.getElementById('tiv-notes').value.trim(),
+        bankDetails: Array.from(tivBanksWrap.querySelectorAll('.repeater-card')).map(c => ({
+          bankName: c.querySelector('.tb-name').value.trim(),
+          accountName: c.querySelector('.tb-accname').value.trim(),
+          accountNumber: c.querySelector('.tb-accno').value.trim(),
+          branch: c.querySelector('.tb-branch').value.trim(),
+          routingNo: c.querySelector('.tb-routing').value.trim()
+        }))
+      };
+    }
+
+    function populateForm(doc) {
+      document.getElementById('tiv-no').value = doc.docNo || '';
+      document.getElementById('tiv-date').value = doc.date || TourBuzzApp.todayISO();
+      document.getElementById('tiv-travel-date').value = doc.travelDate || '';
+      curSelect.value = doc.currency || 'BDT';
+      document.getElementById('tiv-pnr').value = doc.pnr || '';
+      document.getElementById('tiv-airline').value = doc.airline || '';
+      document.getElementById('tiv-sector').value = doc.sector || '';
+      document.getElementById('tiv-pax-list').value = doc.passengerList || '';
+      document.getElementById('tiv-client').value = doc.clientName || '';
+      document.getElementById('tiv-company').value = doc.clientCompany || '';
+      document.getElementById('tiv-phone').value = doc.clientPhone || '';
+      document.getElementById('tiv-email').value = doc.clientEmail || '';
+      document.getElementById('tiv-total-fare').value = (doc.totalFare !== undefined ? doc.totalFare : (TourBuzzApp.toNumber(doc.baseFare) + TourBuzzApp.toNumber(doc.taxes))) || 0;
+      document.getElementById('tiv-ait').value = doc.aitVat ?? 0;
+      document.getElementById('tiv-service').value = doc.serviceCharge ?? 0;
+      document.getElementById('tiv-discount').value = doc.discount ?? 0;
+      document.getElementById('tiv-paid').value = doc.paidAmount ?? 0;
+      document.getElementById('tiv-notes').value = doc.notes || '';
+      tivBanksWrap.innerHTML = '';
+      const bList = Array.isArray(doc.bankDetails) ? doc.bankDetails : (CONFIG.BANK_DETAILS || []);
+      bList.forEach(addTivBankRow);
+    }
+
+    function resetDefaults() {
+      document.getElementById('tiv-no').value = TourBuzzApp.generateDocNumber('ticket-invoice');
+      document.getElementById('tiv-date').value = TourBuzzApp.todayISO();
+      document.getElementById('tiv-travel-date').value = TourBuzzApp.todayISO();
+      curSelect.value = 'BDT';
+      ticketPicker.value = '';
+      document.getElementById('tiv-pnr').value = '';
+      document.getElementById('tiv-airline').value = '';
+      document.getElementById('tiv-sector').value = '';
+      document.getElementById('tiv-pax-list').value = '';
+      document.getElementById('tiv-client').value = '';
+      document.getElementById('tiv-company').value = '';
+      document.getElementById('tiv-phone').value = '';
+      document.getElementById('tiv-email').value = '';
+      document.getElementById('tiv-total-fare').value = 0;
+      document.getElementById('tiv-ait').value = 0;
+      document.getElementById('tiv-service').value = 0;
+      document.getElementById('tiv-discount').value = 0;
+      document.getElementById('tiv-paid').value = 0;
+      document.getElementById('tiv-notes').value = 'Thank you for choosing TourBuzz Travel Services Ltd.';
+      tivBanksWrap.innerHTML = '';
+      (CONFIG.BANK_DETAILS || []).forEach(addTivBankRow);
+    }
+
+    makerCtrl = TourBuzzDocActions.bindMaker({
+      type: 'ticket-invoice',
+      previewSelector: '#a4-preview',
+      collectData,
+      populateForm,
+      resetDefaults
+    });
+  </script>
+</body>
+</html>

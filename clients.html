@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Directory — TourBuzz Travel Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside id="tb-sidebar" class="sidebar"></aside>
+    <div class="app-main">
+      <header id="tb-header" class="top-header"></header>
+
+      <main class="page-body">
+        <!-- KPI Summary Row -->
+        <section class="kpi-grid" style="margin-bottom:20px;">
+          <div class="kpi-card">
+            <div class="kpi-label">Total Clients</div>
+            <div class="kpi-value mono" id="cd-total">0</div>
+            <div class="kpi-sub">Auto-collected from all docs</div>
+          </div>
+          <div class="kpi-card navy">
+            <div class="kpi-label">With Phone / WhatsApp</div>
+            <div class="kpi-value mono" id="cd-phone">0</div>
+            <div class="kpi-sub">Ready for 1-click WhatsApp</div>
+          </div>
+          <div class="kpi-card green">
+            <div class="kpi-label">With Passport on File</div>
+            <div class="kpi-value mono" id="cd-passport">0</div>
+            <div class="kpi-sub">Ready for Visa &amp; Tickets</div>
+          </div>
+          <div class="kpi-card amber">
+            <div class="kpi-label">Total Linked Docs</div>
+            <div class="kpi-value mono" id="cd-docs">0</div>
+            <div class="kpi-sub">Across all 8 modules</div>
+          </div>
+        </section>
+
+        <!-- Add / Edit Client Card (Single Entry + Bulk CSV/XLSX Upload) -->
+        <section class="card" id="cd-editor-card" style="margin-bottom:20px;display:none;border-left:4px solid var(--tb-orange);">
+          <div class="card-header">
+            <h2 class="card-title" id="cd-editor-title">Add New Client</h2>
+            <button type="button" class="btn btn-outline btn-sm" id="btn-cd-close">✕ Close</button>
+          </div>
+          <input type="hidden" id="cd-edit-orig">
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input type="text" id="cd-name" class="form-control" placeholder="e.g. Mr. Tanvir Ahmed">
+            </div>
+            <div class="form-group">
+              <label>Company / Organization</label>
+              <input type="text" id="cd-company" class="form-control" placeholder="Optional">
+            </div>
+            <div class="form-group">
+              <label>Phone / WhatsApp</label>
+              <input type="text" id="cd-phone-in" class="form-control mono" placeholder="+880 1XXX-XXXXXX">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="cd-email" class="form-control" placeholder="client@example.com">
+            </div>
+            <div class="form-group">
+              <label>Passport Number</label>
+              <input type="text" id="cd-passport-in" class="form-control mono" style="text-transform:uppercase;" placeholder="e.g. A01234567">
+            </div>
+            <div class="form-group">
+              <label>Nationality</label>
+              <input type="text" id="cd-nationality" class="form-control" placeholder="Bangladeshi">
+            </div>
+            <div class="form-group full">
+              <label>Address</label>
+              <input type="text" id="cd-address" class="form-control" placeholder="Full street / city address">
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-cd-save">💾 Save Client</button>
+          </div>
+
+          <!-- Bulk CSV / XLSX Upload Section inside Add New Client -->
+          <div style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--border-strong);">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--text-primary);">📥 Bulk Import Clients (CSV / XLSX)</div>
+                <div style="font-size:11.5px;color:var(--text-muted);">Upload a spreadsheet to add or update multiple clients at once. Columns: <span class="mono">Name, Company, Phone, Email, Passport No, Nationality, Address</span></div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-outline btn-sm" id="btn-sample-csv">⬇ Sample CSV</button>
+                <button type="button" class="btn btn-outline btn-sm" id="btn-sample-xlsx">⬇ Sample XLSX</button>
+              </div>
+            </div>
+            <div class="smart-dropzone" id="cd-upload-dropzone">
+              <label style="cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:12.5px;color:var(--text-primary);">
+                <span>📊 Click to Upload CSV / Excel (.xlsx, .xls, .csv) or Drag &amp; Drop Here</span>
+                <input type="file" id="cd-bulk-file" accept=".csv,.xlsx,.xls" style="display:none;">
+              </label>
+              <div id="cd-bulk-status" style="font-size:11.5px;color:var(--tb-green);margin-top:5px;font-weight:600;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Search & Toolbar -->
+        <div class="card" style="margin-bottom:20px;">
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">
+            <input type="search" id="cd-search" class="form-control" style="max-width:340px;" placeholder="Search name, phone, email, company, passport...">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-primary btn-sm" id="btn-cd-new">+ Add / Import Clients</button>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-cd-scan">🔄 Scan All Docs</button>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-cd-sync">☁ Sync Cloud</button>
+              <button type="button" class="btn btn-navy btn-sm" id="btn-cd-csv">⬇ Export CSV</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Client Directory Table -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Saved Clients (<span id="cd-count">0</span>)</h2>
+            <span style="font-size:12px;color:var(--text-muted);">Automatically updated whenever any document is saved or synced</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Client Name &amp; Company</th>
+                  <th>Phone / WhatsApp</th>
+                  <th>Email</th>
+                  <th>Passport &amp; Nationality</th>
+                  <th>Address</th>
+                  <th class="text-center">Docs</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="cd-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    TourBuzzApp.initShell('clients.html', 'Client Directory');
+
+    const searchEl = document.getElementById('cd-search');
+    const editorCard = document.getElementById('cd-editor-card');
+    const bulkFileInput = document.getElementById('cd-bulk-file');
+    const bulkDropzone = document.getElementById('cd-upload-dropzone');
+    const bulkStatusEl = document.getElementById('cd-bulk-status');
+
+    const SAMPLE_ROWS = [
+      {
+        Name: 'Mr. Tanvir Ahmed',
+        Company: 'Apex Solutions BD',
+        Phone: '+8801711223344',
+        Email: 'tanvir@example.com',
+        'Passport No': 'A01234567',
+        Nationality: 'Bangladeshi',
+        Address: 'Road 12, Dhanmondi, Dhaka'
+      },
+      {
+        Name: 'Ms. Nusrat Jahan',
+        Company: '',
+        Phone: '+8801911556677',
+        Email: 'nusrat@example.com',
+        'Passport No': 'A09876543',
+        Nationality: 'Bangladeshi',
+        Address: 'Sector 7, Uttara, Dhaka'
+      }
+    ];
+
+    // Auto-populate any clients from existing saved docs on first load
+    TourBuzzApp.rebuildClientsFromDocs();
+
+    function countClientDocs(name, allDocs) {
+      const low = (name || '').trim().toLowerCase();
+      if (!low) return 0;
+      return allDocs.filter(d => String(d.clientName || '').trim().toLowerCase() === low).length;
+    }
+
+    function renderDirectory() {
+      const allClients = TourBuzzApp.getClients();
+      const allDocs = TourBuzzApp.getAllDocs();
+      const q = searchEl.value.trim().toLowerCase();
+
+      const filtered = allClients.filter(c => {
+        if (!q) return true;
+        return `${c.name} ${c.company} ${c.phone} ${c.email} ${c.passportNo} ${c.nationality} ${c.address}`.toLowerCase().includes(q);
+      });
+
+      document.getElementById('cd-total').textContent = allClients.length;
+      document.getElementById('cd-phone').textContent = allClients.filter(c => c.phone).length;
+      document.getElementById('cd-passport').textContent = allClients.filter(c => c.passportNo).length;
+      document.getElementById('cd-docs').textContent = allDocs.length;
+      document.getElementById('cd-count').textContent = filtered.length;
+
+      const tbody = document.getElementById('cd-tbody');
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding:32px;color:var(--text-muted);">No clients found yet. Click "+ Add / Import Clients" above or save any document to populate the directory automatically.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(c => {
+        const docsCount = countClientDocs(c.name, allDocs);
+        const safeName = TourBuzzApp.escapeHtml(c.name);
+        const rawPhone = (c.phone || '').replace(/[^\d]/g, '');
+        const waBtn = rawPhone
+          ? `<a class="btn btn-outline btn-sm" href="https://wa.me/${rawPhone}" target="_blank" rel="noopener" title="Message on WhatsApp">💬</a>`
+          : '';
+        return `
+          <tr>
+            <td>
+              <strong>${safeName}</strong>
+              ${c.company ? `<div style="font-size:11.5px;color:var(--text-muted);">${TourBuzzApp.escapeHtml(c.company)}</div>` : ''}
+            </td>
+            <td class="mono">${TourBuzzApp.escapeHtml(c.phone || '—')}</td>
+            <td>${TourBuzzApp.escapeHtml(c.email || '—')}</td>
+            <td>
+              ${c.passportNo ? `<span class="mono"><strong>${TourBuzzApp.escapeHtml(c.passportNo)}</strong></span>` : '—'}
+              ${c.nationality ? `<div style="font-size:11px;color:var(--text-muted);">${TourBuzzApp.escapeHtml(c.nationality)}</div>` : ''}
+            </td>
+            <td style="max-width:220px;font-size:12px;">${TourBuzzApp.escapeHtml(c.address || '—')}</td>
+            <td class="text-center">
+              <a href="documents.html?q=${encodeURIComponent(c.name)}" class="badge badge-navy" title="View all documents for this client">${docsCount} Doc${docsCount === 1 ? '' : 's'}</a>
+            </td>
+            <td class="text-right" style="white-space:nowrap;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="editClient('${encodeURIComponent(c.name)}')">Edit</button>
+              ${waBtn}
+              <button type="button" class="btn btn-danger btn-sm" onclick="deleteClient('${encodeURIComponent(c.name)}')">✕</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    /* RFC-4180 CSV Parser (works 100% offline) */
+    function parseCSVText(text) {
+      const rows = [];
+      let row = [];
+      let field = '';
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+        if (inQuotes) {
+          if (ch === '"' && next === '"') { field += '"'; i++; }
+          else if (ch === '"') { inQuotes = false; }
+          else { field += ch; }
+        } else {
+          if (ch === '"') { inQuotes = true; }
+          else if (ch === ',') { row.push(field.trim()); field = ''; }
+          else if (ch === '\r' && next === '\n') { row.push(field.trim()); rows.push(row); row = []; field = ''; i++; }
+          else if (ch === '\n' || ch === '\r') { row.push(field.trim()); rows.push(row); row = []; field = ''; }
+          else { field += ch; }
+        }
+      }
+      if (field.length || row.length) { row.push(field.trim()); rows.push(row); }
+      if (rows.length < 2) return [];
+      const headers = rows[0];
+      return rows.slice(1).filter(r => r.some(Boolean)).map(r => {
+        const obj = {};
+        headers.forEach((h, idx) => { obj[h] = r[idx] || ''; });
+        return obj;
+      });
+    }
+
+    function normalizeImportedRow(raw) {
+      const getVal = keys => {
+        for (const k of Object.keys(raw || {})) {
+          const norm = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (keys.includes(norm) && String(raw[k] || '').trim()) return String(raw[k]).trim();
+        }
+        return '';
+      };
+      const name = getVal(['name', 'fullname', 'clientname', 'client', 'passenger', 'guest', 'guestname']);
+      if (!name) return null;
+      return {
+        name,
+        company: getVal(['company', 'organization', 'org', 'corporate', 'agency']),
+        phone: getVal(['phone', 'mobile', 'whatsapp', 'contact', 'phonenumber', 'tel']),
+        email: getVal(['email', 'emailaddress', 'mail']),
+        passportNo: getVal(['passportno', 'passport', 'passportnumber', 'ppno', 'pp']).toUpperCase(),
+        nationality: getVal(['nationality', 'country', 'citizenship']),
+        address: getVal(['address', 'location', 'city']),
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    async function handleBulkUpload(file) {
+      if (!file) return;
+      bulkStatusEl.style.color = 'var(--text-secondary)';
+      bulkStatusEl.textContent = `Reading ${file.name}...`;
+      try {
+        const lower = (file.name || '').toLowerCase();
+        let rawRows = [];
+        if (lower.endsWith('.csv')) {
+          rawRows = parseCSVText(await file.text());
+        } else if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
+          if (typeof window.XLSX === 'undefined') {
+            throw new Error('Excel parser (XLSX) requires internet access — please upload a .csv file while offline.');
+          }
+          const buf = await file.arrayBuffer();
+          const wb = window.XLSX.read(buf, { type: 'array' });
+          const firstSheet = wb.Sheets[wb.SheetNames[0]];
+          rawRows = window.XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+        } else {
+          throw new Error('Please upload a .csv, .xlsx, or .xls file.');
+        }
+
+        const imported = rawRows.map(normalizeImportedRow).filter(Boolean);
+        if (!imported.length) {
+          throw new Error('No valid client rows found. Make sure your file has a "Name" column.');
+        }
+
+        const merged = TourBuzzApp.mergeClients(TourBuzzApp.getClients(), imported);
+        TourBuzzApp.saveClients(merged);
+        renderDirectory();
+        if (TourBuzzApp.isGitHubConfigured()) await TourBuzzApp.syncClientsToGitHub();
+
+        bulkStatusEl.style.color = 'var(--tb-green)';
+        bulkStatusEl.textContent = `✓ Imported & merged ${imported.length} client(s) from ${file.name}!`;
+        TourBuzzApp.toast(`Imported ${imported.length} client(s) into Client Directory.`, 'success');
+      } catch (err) {
+        bulkStatusEl.style.color = 'var(--tb-red)';
+        bulkStatusEl.textContent = `✕ ${err.message}`;
+        TourBuzzApp.toast(err.message, 'error');
+      }
+      bulkFileInput.value = '';
+    }
+
+    /* Sample CSV & Sample XLSX Downloads */
+    document.getElementById('btn-sample-csv').addEventListener('click', () => {
+      const headers = ['Name', 'Company', 'Phone', 'Email', 'Passport No', 'Nationality', 'Address'];
+      const escCsv = v => `"${String(v || '').replace(/"/g, '""')}"`;
+      const csv = [headers.join(',')].concat(
+        SAMPLE_ROWS.map(r => headers.map(h => escCsv(r[h])).join(','))
+      ).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'TourBuzz_Clients_Sample.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      TourBuzzApp.toast('Downloaded TourBuzz_Clients_Sample.csv', 'success');
+    });
+
+    document.getElementById('btn-sample-xlsx').addEventListener('click', () => {
+      if (typeof window.XLSX === 'undefined') {
+        TourBuzzApp.toast('Excel generator unavailable offline — downloading Sample CSV instead.', 'warn');
+        document.getElementById('btn-sample-csv').click();
+        return;
+      }
+      const ws = window.XLSX.utils.json_to_sheet(SAMPLE_ROWS);
+      ws['!cols'] = [{ wch: 22 }, { wch: 20 }, { wch: 18 }, { wch: 24 }, { wch: 14 }, { wch: 14 }, { wch: 30 }];
+      const wb = window.XLSX.utils.book_new();
+      window.XLSX.utils.book_append_sheet(wb, ws, 'Clients');
+      window.XLSX.writeFile(wb, 'TourBuzz_Clients_Sample.xlsx');
+      TourBuzzApp.toast('Downloaded TourBuzz_Clients_Sample.xlsx', 'success');
+    });
+
+    bulkFileInput.addEventListener('change', e => handleBulkUpload(e.target.files[0]));
+    bulkDropzone.addEventListener('dragover', e => { e.preventDefault(); bulkDropzone.classList.add('dragover'); });
+    bulkDropzone.addEventListener('dragleave', () => bulkDropzone.classList.remove('dragover'));
+    bulkDropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      bulkDropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleBulkUpload(e.dataTransfer.files[0]);
+    });
+
+    function openEditor(client = null) {
+      document.getElementById('cd-editor-title').textContent = client ? `Edit Client: ${client.name}` : 'Add New Client (or Bulk Upload CSV / XLSX)';
+      document.getElementById('cd-edit-orig').value = client ? client.name : '';
+      document.getElementById('cd-name').value = client ? (client.name || '') : '';
+      document.getElementById('cd-company').value = client ? (client.company || '') : '';
+      document.getElementById('cd-phone-in').value = client ? (client.phone || '') : '';
+      document.getElementById('cd-email').value = client ? (client.email || '') : '';
+      document.getElementById('cd-passport-in').value = client ? (client.passportNo || '') : '';
+      document.getElementById('cd-nationality').value = client ? (client.nationality || '') : '';
+      document.getElementById('cd-address').value = client ? (client.address || '') : '';
+      bulkStatusEl.textContent = '';
+      editorCard.style.display = 'block';
+      editorCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    window.editClient = function (encodedName) {
+      const name = decodeURIComponent(encodedName);
+      const found = TourBuzzApp.getClients().find(c => c.name === name);
+      if (found) openEditor(found);
+    };
+
+    window.deleteClient = function (encodedName) {
+      const name = decodeURIComponent(encodedName);
+      if (!confirm(`Remove "${name}" from the Client Directory? (Their saved documents will remain intact.)`)) return;
+      const list = TourBuzzApp.getClients().filter(c => c.name !== name);
+      TourBuzzApp.saveClients(list);
+      if (TourBuzzApp.isGitHubConfigured()) TourBuzzApp.syncClientsToGitHub();
+      renderDirectory();
+      TourBuzzApp.toast(`Removed ${name} from Client Directory.`, 'info');
+    };
+
+    document.getElementById('btn-cd-new').addEventListener('click', () => openEditor(null));
+    document.getElementById('btn-cd-close').addEventListener('click', () => { editorCard.style.display = 'none'; });
+
+    document.getElementById('btn-cd-save').addEventListener('click', async () => {
+      const name = document.getElementById('cd-name').value.trim();
+      if (!name) return TourBuzzApp.toast('Client name is required.', 'warn');
+      const orig = document.getElementById('cd-edit-orig').value.trim();
+      let list = TourBuzzApp.getClients();
+      if (orig && orig.toLowerCase() !== name.toLowerCase()) {
+        list = list.filter(c => c.name.toLowerCase() !== orig.toLowerCase());
+      }
+      const entry = {
+        name,
+        company: document.getElementById('cd-company').value.trim(),
+        phone: document.getElementById('cd-phone-in').value.trim(),
+        email: document.getElementById('cd-email').value.trim(),
+        passportNo: document.getElementById('cd-passport-in').value.trim().toUpperCase(),
+        nationality: document.getElementById('cd-nationality').value.trim(),
+        address: document.getElementById('cd-address').value.trim(),
+        updatedAt: new Date().toISOString()
+      };
+      const idx = list.findIndex(c => c.name.toLowerCase() === name.toLowerCase());
+      if (idx >= 0) list[idx] = entry;
+      else list.unshift(entry);
+      TourBuzzApp.saveClients(list);
+      editorCard.style.display = 'none';
+      renderDirectory();
+      if (TourBuzzApp.isGitHubConfigured()) await TourBuzzApp.syncClientsToGitHub();
+      TourBuzzApp.toast(`Saved ${name} to Client Directory.`, 'success');
+    });
+
+    document.getElementById('btn-cd-scan').addEventListener('click', () => {
+      const added = TourBuzzApp.rebuildClientsFromDocs();
+      renderDirectory();
+      TourBuzzApp.toast(`Scanned all documents — ${added} client profile(s) in directory.`, 'success');
+    });
+
+    document.getElementById('btn-cd-sync').addEventListener('click', async () => {
+      await TourBuzzApp.syncAll(true);
+      TourBuzzApp.rebuildClientsFromDocs();
+      if (TourBuzzApp.isGitHubConfigured()) await TourBuzzApp.syncClientsToGitHub();
+      renderDirectory();
+      TourBuzzApp.toast('Client Directory synced with cloud.', 'success');
+    });
+
+    document.getElementById('btn-cd-csv').addEventListener('click', () => {
+      const list = TourBuzzApp.getClients();
+      if (!list.length) return TourBuzzApp.toast('No clients to export.', 'warn');
+      const headers = ['Name', 'Company', 'Phone', 'Email', 'Passport No', 'Nationality', 'Address'];
+      const escCsv = v => `"${String(v || '').replace(/"/g, '""')}"`;
+      const csv = [headers.join(',')].concat(
+        list.map(c => [c.name, c.company, c.phone, c.email, c.passportNo, c.nationality, c.address].map(escCsv).join(','))
+      ).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `TourBuzz_Client_Directory_${TourBuzzApp.todayISO()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      TourBuzzApp.toast(`Exported ${list.length} clients to CSV.`, 'success');
+    });
+
+    searchEl.addEventListener('input', renderDirectory);
+    window.addEventListener('tourbuzz:synced', () => {
+      TourBuzzApp.rebuildClientsFromDocs();
+      renderDirectory();
+    });
+
+    renderDirectory();
+    if (TourBuzzApp.isSheetsConfigured() || TourBuzzApp.isGitHubConfigured()) TourBuzzApp.syncAll(true);
+  </script>
+</body>
+</html>
