@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visa Processing Checklist — TourBuzz TMS</title>
+  <title>Visa Documents Checklist — TourBuzz TMS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@
       <header id="tb-header" class="top-header"></header>
 
       <div class="maker-action-bar">
-        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Visa Processing &amp; Submitted-Documents Checklist Sheet</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text-secondary);">Visa Required Documents Checklist Builder</div>
         <div class="maker-action-group">
           <button type="button" class="btn btn-primary btn-sm" id="btn-save-sync">💾 Save &amp; Sync</button>
           <button type="button" class="btn btn-navy btn-sm" id="btn-print-a4">🖨 Print A4</button>
@@ -32,27 +32,27 @@
             <div class="form-section-title">Applicant &amp; Visa Scope</div>
             <div class="form-grid">
               <div class="form-group">
-                <label>Visa File Reference</label>
+                <label>Checklist Reference</label>
                 <input type="text" id="vis-no" class="form-control mono">
               </div>
               <div class="form-group">
-                <label>Submission Date</label>
+                <label>Date</label>
                 <input type="date" id="vis-date" class="form-control">
               </div>
               <div class="form-group">
-                <label>Applicant Full Name *</label>
-                <input type="text" id="vis-name" class="form-control" placeholder="As per passport">
+                <label>Applicant / Client Name</label>
+                <input type="text" id="vis-name" class="form-control" placeholder="As per passport (optional)">
               </div>
               <div class="form-group">
-                <label>Passport Number *</label>
-                <input type="text" id="vis-passport" class="form-control mono" style="text-transform:uppercase;" placeholder="e.g. A01234567">
+                <label>Passport Number</label>
+                <input type="text" id="vis-passport" class="form-control mono" style="text-transform:uppercase;" placeholder="e.g. A01234567 (optional)">
               </div>
               <div class="form-group">
                 <label>Nationality</label>
                 <input type="text" id="vis-nationality" class="form-control" value="Bangladeshi">
               </div>
               <div class="form-group">
-                <label>Applicant Phone</label>
+                <label>Client Phone</label>
                 <input type="text" id="vis-phone" class="form-control" placeholder="+880 1XXX-XXXXXX">
               </div>
               <div class="form-group">
@@ -83,12 +83,13 @@
                 <input type="text" id="vis-duration" class="form-control" value="30 Days">
               </div>
               <div class="form-group">
-                <label>Processing Status</label>
+                <label>Status</label>
                 <select id="vis-status" class="form-control">
+                  <option value="REQUIRED">REQUIRED</option>
+                  <option value="PENDING">PENDING</option>
                   <option value="PROCESSING">PROCESSING</option>
                   <option value="SUBMITTED">SUBMITTED</option>
                   <option value="APPROVED">APPROVED</option>
-                  <option value="PENDING">PENDING</option>
                   <option value="REJECTED">REJECTED</option>
                 </select>
               </div>
@@ -96,18 +97,42 @@
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">Submitted Documents Checklist</div>
-            <div id="vis-checklist-wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;"></div>
+            <div class="form-section-title">
+              <span>Required Documents List (<span id="vis-req-count">0</span>)</span>
+              <button type="button" class="btn btn-outline btn-sm" id="btn-restore-defaults">↺ Restore Defaults</button>
+            </div>
+            <p style="font-size:12px;color:var(--text-muted);margin:0 0 10px;">
+              Every document below will be requested from the applicant on the A4 checklist. Edit any line, click <strong>✕</strong> to remove, or add new requirements below.
+            </p>
+            <div id="vis-checklist-wrap" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
             <div style="display:flex;gap:8px;">
-              <input type="text" id="vis-custom-item" class="form-control" placeholder="Add custom document (e.g. Birth Certificate, Police Clearance)...">
-              <button type="button" class="btn btn-outline btn-sm" id="btn-add-check">+ Add</button>
+              <input type="text" id="vis-custom-item" class="form-control" placeholder="Add required document (e.g. Birth Certificate, Police Clearance, Hotel Voucher)...">
+              <button type="button" class="btn btn-primary btn-sm" id="btn-add-check">+ Add</button>
             </div>
           </div>
 
           <div class="form-section">
-            <div class="form-section-title">Embassy Remarks</div>
+            <div class="form-section-title">Contact Person for Visa Processing</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Contact Name</label>
+                <input type="text" id="vis-contact-name" class="form-control" value="Fardeen Ahmed Uthsa">
+              </div>
+              <div class="form-group">
+                <label>Contact Phone</label>
+                <input type="text" id="vis-contact-phone" class="form-control mono" value="+8801933-128801">
+              </div>
+              <div class="form-group full">
+                <label>Designation &amp; Company</label>
+                <input type="text" id="vis-contact-role" class="form-control" value="Executive • TourBuzz Travels Services Ltd.">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-title">Submission Guidelines &amp; Notes</div>
             <div class="form-group full">
-              <textarea id="vis-remarks" class="form-control" rows="3" placeholder="Special notes, appointment date, or missing document follow-ups..."></textarea>
+              <textarea id="vis-remarks" class="form-control" rows="3" placeholder="Special instructions, embassy fee note, submission deadline, or appointment details..."></textarea>
             </div>
           </div>
         </div>
@@ -126,51 +151,85 @@
   <script src="smart-parser.js"></script>
   <script src="doc-actions.js"></script>
   <script>
-    TourBuzzApp.initShell('visa.html', 'Visa Processing & Checklist');
+    TourBuzzApp.initShell('visa.html', 'Visa Documents Checklist');
 
     const DEFAULT_VISA_DOCS = [
       'Original Passport (Min 6 Months Validity)',
-      'Previous / Old Passport(s)',
+      'Previous / Old Passport(s) (If Any)',
       'Recent White-Background Photos (2–4 Copies)',
-      'Last 6 Months Bank Statement & Solvency',
-      'NOC / Leave Approval Letter (Job Holder)',
-      'Updated Trade License & TIN (Business)',
-      'Visiting Card & Company Pad',
+      'Last 6 Months Bank Statement & Bank Solvency Certificate',
+      'NOC / Leave Approval Letter (For Job Holders)',
+      'Updated Trade License & TIN Certificate (For Business)',
+      'Visiting Card & Company Letterhead Pad',
       'NID / Smart Card Copy',
-      'Marriage Certificate / Nikahnama',
-      'Invitation Letter / Sponsor Documents',
+      'Marriage Certificate / Nikahnama (If Traveling with Spouse)',
+      'Invitation Letter / Sponsor Documents (If Applicable)',
       'Confirmed Flight Itinerary & Hotel Booking',
       'Travel Insurance Policy'
     ];
 
     const checkWrap = document.getElementById('vis-checklist-wrap');
+    const reqCountEl = document.getElementById('vis-req-count');
+    const customInput = document.getElementById('vis-custom-item');
     let checklistState = [];
     let makerCtrl = null;
 
     function renderChecklistControls() {
+      reqCountEl.textContent = checklistState.length;
+      if (!checklistState.length) {
+        checkWrap.innerHTML = `<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:12.5px;border:1px dashed var(--border-strong);border-radius:8px;">No required documents added. Add items below or click "Restore Defaults".</div>`;
+        return;
+      }
+
       checkWrap.innerHTML = checklistState.map((item, idx) => `
-        <label style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--border-color);border-radius:6px;cursor:pointer;font-size:12.5px;background:var(--bg-subtle);">
-          <input type="checkbox" data-idx="${idx}" ${item.checked ? 'checked' : ''} style="accent-color:var(--tb-green);width:15px;height:15px;">
-          <span>${TourBuzzApp.escapeHtml(item.label)}</span>
-        </label>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-subtle);">
+          <span class="mono" style="font-size:11.5px;font-weight:700;color:var(--tb-orange);min-width:22px;text-align:center;">${idx + 1}.</span>
+          <input type="text" class="form-control vis-item-input" data-idx="${idx}" value="${TourBuzzApp.escapeHtml(item.label)}" style="height:32px;font-size:12.5px;">
+          <button type="button" class="btn btn-danger btn-sm vis-item-remove" data-idx="${idx}" title="Remove document">✕</button>
+        </div>
       `).join('');
 
-      checkWrap.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        cb.addEventListener('change', () => {
-          checklistState[parseInt(cb.dataset.idx, 10)].checked = cb.checked;
+      checkWrap.querySelectorAll('.vis-item-input').forEach(inp => {
+        inp.addEventListener('input', () => {
+          const i = parseInt(inp.dataset.idx, 10);
+          if (checklistState[i]) checklistState[i].label = inp.value;
+          if (makerCtrl) makerCtrl.scheduleRender();
+        });
+      });
+
+      checkWrap.querySelectorAll('.vis-item-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const i = parseInt(btn.dataset.idx, 10);
+          checklistState.splice(i, 1);
+          renderChecklistControls();
           if (makerCtrl) makerCtrl.renderNow();
         });
       });
     }
 
-    document.getElementById('btn-add-check').addEventListener('click', () => {
-      const inp = document.getElementById('vis-custom-item');
-      const val = inp.value.trim();
+    function addCustomDoc() {
+      const val = customInput.value.trim();
       if (!val) return;
       checklistState.push({ label: val, checked: true });
-      inp.value = '';
+      customInput.value = '';
       renderChecklistControls();
       if (makerCtrl) makerCtrl.renderNow();
+      customInput.focus();
+    }
+
+    document.getElementById('btn-add-check').addEventListener('click', addCustomDoc);
+    customInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addCustomDoc();
+      }
+    });
+
+    document.getElementById('btn-restore-defaults').addEventListener('click', () => {
+      checklistState = DEFAULT_VISA_DOCS.map(label => ({ label, checked: true }));
+      renderChecklistControls();
+      if (makerCtrl) makerCtrl.renderNow();
+      TourBuzzApp.toast('Restored default required documents list.', 'info');
     });
 
     function collectData() {
@@ -187,7 +246,12 @@
         entryType: document.getElementById('vis-entry').value,
         duration: document.getElementById('vis-duration').value.trim(),
         status: document.getElementById('vis-status').value,
-        checklist: structuredClone(checklistState),
+        checklist: checklistState
+          .map(i => ({ label: String(i.label || '').trim(), checked: true }))
+          .filter(i => i.label.length > 0),
+        contactName: document.getElementById('vis-contact-name').value.trim(),
+        contactPhone: document.getElementById('vis-contact-phone').value.trim(),
+        contactRole: document.getElementById('vis-contact-role').value.trim(),
         remarks: document.getElementById('vis-remarks').value.trim()
       };
     }
@@ -203,11 +267,14 @@
       document.getElementById('vis-category').value = doc.visaCategory || 'Tourist';
       document.getElementById('vis-entry').value = doc.entryType || 'Single Entry';
       document.getElementById('vis-duration').value = doc.duration || '30 Days';
-      document.getElementById('vis-status').value = doc.status || 'PROCESSING';
+      document.getElementById('vis-status').value = doc.status || 'REQUIRED';
+      document.getElementById('vis-contact-name').value = doc.contactName !== undefined ? doc.contactName : 'Fardeen Ahmed Uthsa';
+      document.getElementById('vis-contact-phone').value = doc.contactPhone !== undefined ? doc.contactPhone : '+8801933-128801';
+      document.getElementById('vis-contact-role').value = doc.contactRole !== undefined ? doc.contactRole : 'Executive • TourBuzz Travels Services Ltd.';
       document.getElementById('vis-remarks').value = doc.remarks || '';
       checklistState = Array.isArray(doc.checklist) && doc.checklist.length
-        ? structuredClone(doc.checklist)
-        : DEFAULT_VISA_DOCS.map((label, i) => ({ label, checked: i < 4 }));
+        ? doc.checklist.map(i => ({ label: i.label || '', checked: true }))
+        : DEFAULT_VISA_DOCS.map(label => ({ label, checked: true }));
       renderChecklistControls();
     }
 
@@ -222,9 +289,12 @@
       document.getElementById('vis-category').value = 'Tourist';
       document.getElementById('vis-entry').value = 'Single Entry';
       document.getElementById('vis-duration').value = '30 Days';
-      document.getElementById('vis-status').value = 'PROCESSING';
+      document.getElementById('vis-status').value = 'REQUIRED';
+      document.getElementById('vis-contact-name').value = 'Fardeen Ahmed Uthsa';
+      document.getElementById('vis-contact-phone').value = '+8801933-128801';
+      document.getElementById('vis-contact-role').value = 'Executive • TourBuzz Travels Services Ltd.';
       document.getElementById('vis-remarks').value = '';
-      checklistState = DEFAULT_VISA_DOCS.map((label, i) => ({ label, checked: i === 0 || i === 2 }));
+      checklistState = DEFAULT_VISA_DOCS.map(label => ({ label, checked: true }));
       renderChecklistControls();
     }
 

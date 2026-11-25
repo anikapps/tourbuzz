@@ -675,52 +675,94 @@
   }
 
   /* ------------------------------------------------------------------------
-     7. Visa Processing & Submitted-Documents Checklist Sheet
+     7. Visa Required Documents Checklist Sheet
      ------------------------------------------------------------------------ */
   function renderVisa(doc) {
-    const checklist = Array.isArray(doc.checklist) ? doc.checklist : [];
-    const submittedCount = checklist.filter(c => c.checked).length;
+    const checklist = (Array.isArray(doc.checklist) ? doc.checklist : []).filter(c => hasText(c.label));
 
-    const itemsHtml = checklist.map(item => `
-      <div class="visa-check-item ${item.checked ? 'checked' : ''}">
-        <span style="font-size:13px;">${item.checked ? '☑' : '☐'}</span>
-        <span>${esc(item.label)}</span>
+    const itemsHtml = checklist.length ? checklist.map((item, idx) => `
+      <div class="visa-check-item" style="align-items:flex-start;">
+        <span style="font-size:13px;color:#102542;line-height:1.25;">☐</span>
+        <span><strong style="color:#f5820b;margin-right:4px;">${idx + 1}.</strong>${esc(item.label)}</span>
       </div>
-    `).join('');
+    `).join('') : `<div style="color:#64748b;font-size:11px;">No required documents listed yet.</div>`;
+
+    const applicantLines = [
+      hasText(doc.clientName) ? `<div style="font-weight:700;font-size:13.5px;color:#102542;">${esc(doc.clientName)}</div>` : '',
+      hasText(doc.passportNo) ? `<div><strong>Passport No:</strong> <span class="mono" style="font-weight:700;">${esc(doc.passportNo.toUpperCase())}</span></div>` : '',
+      hasText(doc.nationality) ? `<div><strong>Nationality:</strong> ${esc(doc.nationality)}</div>` : '',
+      hasText(doc.clientPhone) ? `<div><strong>Contact:</strong> ${esc(doc.clientPhone)}</div>` : ''
+    ].filter(Boolean);
+
+    const scopeBox = `
+      <div class="a4-box">
+        <div class="a4-box-title">Visa Application Scope</div>
+        ${hasText(doc.destination) ? `<div><strong>Destination:</strong> <strong style="color:#f5820b;">${esc(doc.destination)}</strong></div>` : ''}
+        <div><strong>Category:</strong> ${esc(doc.visaCategory || 'Tourist')}</div>
+        <div><strong>Entry Type:</strong> ${esc(doc.entryType || 'Single Entry')}</div>
+        ${hasText(doc.duration) ? `<div><strong>Stay Duration:</strong> ${esc(doc.duration)}</div>` : ''}
+      </div>
+    `;
+
+    const infoSection = applicantLines.length
+      ? `<div class="a4-info-grid"><div class="a4-box"><div class="a4-box-title">Applicant Details</div>${applicantLines.join('')}</div>${scopeBox}</div>`
+      : `<div class="a4-info-grid" style="grid-template-columns:1fr;">${scopeBox}</div>`;
+
+    const destBanner = hasText(doc.destination) ? `
+      <div style="background:#102542;color:#ffffff;padding:12px 18px;border-radius:8px;border-left:5px solid #f5820b;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:14px;">
+        <div>
+          <div style="font-size:9.5px;text-transform:uppercase;letter-spacing:0.1em;color:#fdba74;font-weight:700;">Destination Country</div>
+          <div style="font-size:21px;font-weight:800;letter-spacing:0.03em;line-height:1.15;color:#ffffff;">${esc(doc.destination.toUpperCase())}</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#e2e8f0;">
+          <div style="font-weight:700;color:#ffffff;">${esc(doc.visaCategory || 'Tourist')} Visa</div>
+          <div>${esc(doc.entryType || 'Single Entry')}${hasText(doc.duration) ? ` · ${esc(doc.duration)}` : ''}</div>
+        </div>
+      </div>
+    ` : '';
+
+    const cName = doc.contactName !== undefined ? doc.contactName : 'Fardeen Ahmed Uthsa';
+    const cPhone = doc.contactPhone !== undefined ? doc.contactPhone : '+8801933-128801';
+    const cRole = doc.contactRole !== undefined ? doc.contactRole : 'Executive • TourBuzz Travels Services Ltd.';
+    const hasContact = hasText(cName) || hasText(cPhone) || hasText(cRole);
+
+    const contactBox = hasContact ? `
+      <div class="a4-box" style="background:#f8fafc;border:1.5px solid #102542;border-left:4px solid #f5820b;margin-bottom:14px;">
+        <div class="a4-box-title" style="color:#102542;margin-bottom:5px;">Contact Person for Visa Processing</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div>
+            ${hasText(cName) ? `<div style="font-size:13.5px;font-weight:800;color:#102542;">${esc(cName)}</div>` : ''}
+            ${hasText(cRole) ? `<div style="font-size:10.8px;color:#475569;font-weight:500;">${esc(cRole)}</div>` : ''}
+          </div>
+          ${hasText(cPhone) ? `<div class="mono" style="font-size:12.5px;font-weight:700;color:#102542;background:#fff7ed;border:1px solid #fed7aa;padding:5px 12px;border-radius:6px;">☎ ${esc(cPhone)}</div>` : ''}
+        </div>
+      </div>
+    ` : '';
 
     return `
       <div class="sheet" data-doc-type="visa">
         <div class="sheet-body">
-          ${renderHeader('Visa File & Checklist', doc.docNo, doc.date, doc.status || 'PROCESSING')}
+          ${renderHeader('Visa Documents Checklist', doc.docNo, doc.date, doc.status || 'REQUIRED')}
 
-          <div class="a4-info-grid">
-            <div class="a4-box">
-              <div class="a4-box-title">Applicant Details</div>
-              <div style="font-weight:700;font-size:13.5px;color:#102542;">${esc(doc.clientName || '—')}</div>
-              <div><strong>Passport No:</strong> <span class="mono" style="font-weight:700;">${esc((doc.passportNo || '—').toUpperCase())}</span></div>
-              <div><strong>Nationality:</strong> ${esc(doc.nationality || 'Bangladeshi')}</div>
-              ${hasText(doc.clientPhone) ? `<div><strong>Contact:</strong> ${esc(doc.clientPhone)}</div>` : ''}
-            </div>
-            <div class="a4-box">
-              <div class="a4-box-title">Visa Application Scope</div>
-              <div><strong>Destination:</strong> <strong style="color:#f5820b;">${esc(doc.destination || '—')}</strong></div>
-              <div><strong>Category:</strong> ${esc(doc.visaCategory || 'Tourist')}</div>
-              <div><strong>Entry Type:</strong> ${esc(doc.entryType || 'Single Entry')}</div>
-              <div><strong>Stay Duration:</strong> ${esc(doc.duration || '30 Days')}</div>
-            </div>
-          </div>
+          ${destBanner}
+          ${infoSection}
 
-          <div class="a4-box" style="margin-bottom:14px;background:#ffffff;">
-            <div class="a4-box-title" style="display:flex;justify-content:space-between;">
-              <span>Submitted Documents Checklist</span>
-              <span style="color:#157f3d;">${submittedCount} / ${checklist.length} Received</span>
+          <div class="a4-box" style="margin-bottom:14px;background:#ffffff;border-color:#cbd5e1;">
+            <div class="a4-box-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span>Required Documents For Visa Application</span>
+              <span style="color:#102542;">${checklist.length} Document${checklist.length === 1 ? '' : 's'} Required</span>
+            </div>
+            <div style="font-size:10.5px;color:#475569;margin-bottom:10px;">
+              Please prepare and submit the following required documents to <strong>${esc(CONFIG.COMPANY.NAME)}</strong> to initiate your visa processing:
             </div>
             <div class="visa-check-grid">${itemsHtml}</div>
           </div>
 
-          <div class="a4-box" style="background:#fff7ed;border-color:#fed7aa;margin-bottom:14px;">
-            <div class="a4-box-title">Embassy Remarks &amp; Declaration</div>
-            <div style="white-space:pre-line;font-size:10.8px;color:#334155;">${esc(doc.remarks || 'All original documents received by TourBuzz Travel Services Ltd. are strictly for embassy / VFS visa submission. Visa approval, processing timeline, and validity rest solely at the discretion of the respective Embassy / Consulate. Visa fees are non-refundable once submitted.')}</div>
+          ${contactBox}
+
+          <div class="a4-box" style="background:#fff7ed;border-color:#fed7aa;margin-bottom:10px;">
+            <div class="a4-box-title">Submission Guidelines &amp; Important Notes</div>
+            <div style="white-space:pre-line;font-size:10.5px;color:#334155;">${esc(doc.remarks || 'Please provide clear copies and original documents as listed above to TourBuzz Travel Services Ltd. for your visa application. Additional supporting documents may be requested by the Embassy / Consulate if required. Visa approval, processing timeline, and validity rest solely at the discretion of the respective Embassy / Consulate.')}</div>
           </div>
 
         </div>
